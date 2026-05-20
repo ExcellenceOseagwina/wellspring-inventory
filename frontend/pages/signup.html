@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - Wellspring University</title>
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <main class="auth-shell">
+    <section class="auth-panel">
+      <a class="auth-logo" href="../home.html" aria-label="Wellspring University home">
+        <img src="../assets/logo.png" alt="Wellspring University logo">
+      </a>
+      <p class="eyebrow">Create account</p>
+      <h1>Wellspring University</h1>
+      <p class="muted">Create an account to manage departmental inventory records.</p>
+      <form id="signupForm">
+        <input type="text" id="full_name" placeholder="Full name" required>
+        <input type="email" id="email" placeholder="Email address" required>
+        <input type="password" id="password" placeholder="Password" minlength="6" required>
+        <button type="submit" class="btn primary">Sign up</button>
+      </form>
+      <p id="authMessage" class="error"></p>
+      <div class="auth-links">
+        <a class="home-link" href="../home.html">Back to Home</a>
+        <a href="login.html">Already have an account?</a>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer"><p>&copy; 2026 Excellence Oseagwina</p></footer>
+  <script src="../js/auth.js"></script>
+</body>
+</html>

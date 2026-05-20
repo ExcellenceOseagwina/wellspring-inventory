@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wellspring University - Dashboard</title>
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body onload="checkAuth()">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-row">
+        <a class="logo-link" href="../home.html" aria-label="Wellspring University home">
+          <img src="../assets/logo.png" alt="Wellspring University logo">
+        </a>
+        <div class="brand">
+          <h1>Wellspring University</h1>
+          <p>Inventory Management Dashboard</p>
+        </div>
+      </div>
+      <div class="auth-actions">
+        <a class="btn secondary" href="../home.html">Back to Home</a>
+        <a class="btn secondary" href="recent-activity.html">Recent Activity</a>
+        <button class="btn secondary" onclick="logout()">Sign out</button>
+      </div>
+    </header>
+    <main class="content">
+      <p id="dashboardNotice" class="error"></p>
+      <section class="stats-grid">
+        <article class="stat-card total-stat"><span>Total Equipment</span><strong id="total">0</strong></article>
+        <article class="stat-card department-stat"><span>Departments</span><strong id="departments">7</strong></article>
+        <article class="stat-card good-stat"><span>Good</span><strong id="good">0</strong></article>
+        <article class="stat-card outdated-stat"><span>Outdated</span><strong id="outdated">0</strong></article>
+        <article class="stat-card repair-stat"><span>For Repair</span><strong id="repair">0</strong></article>
+        <article class="stat-card replacement-stat"><span>For Replacement</span><strong id="replacement">0</strong></article>
+        <article class="stat-card missing-stat"><span>Missing</span><strong id="missing">0</strong></article>
+      </section>
+      <section class="section-head">
+        <h2>Departments</h2>
+        <button class="btn primary" type="button" id="generateReportBtn">Generate Report</button>
+      </section>
+      <section class="department-grid">
+        <a class="department-card" href="departments/computing.html"><strong>Computing</strong><span>View equipment records</span></a>
+        <a class="department-card" href="departments/nursing.html"><strong>Nursing</strong><span>View equipment records</span></a>
+        <a class="department-card" href="departments/accounting.html"><strong>Accounting</strong><span>View equipment records</span></a>
+        <a class="department-card" href="departments/public-health.html"><strong>Public Health</strong><span>View equipment records</span></a>
+        <a class="department-card" href="departments/mass-communication.html"><strong>Mass Communication</strong><span>View equipment records</span></a>
+        <a class="department-card" href="departments/bio-chemistry.html"><strong>Bio Chemistry</strong><span>View equipment records</span></a>
+        <a class="department-card" href="departments/biological-science.html"><strong>Biological Science</strong><span>View equipment records</span></a>
+      </section>
+      <section class="report-panel" id="reportPanel" aria-live="polite" hidden>
+        <div class="report-toolbar">
+          <div>
+            <p class="eyebrow">Printable report</p>
+            <h2>Inventory Report</h2>
+            <p class="muted" id="reportGeneratedAt"></p>
+          </div>
+          <button class="btn secondary" type="button" id="printReportBtn">Print Report</button>
+        </div>
+        <div class="print-report" id="printReport">
+          <header class="print-report-head">
+            <div class="print-brand">
+              <img src="../assets/logo.png" alt="Wellspring University logo">
+              <div>
+                <h2>Wellspring University</h2>
+                <p>Inventory Management Report</p>
+              </div>
+            </div>
+            <dl class="report-meta">
+              <div><dt>Generated</dt><dd id="printGeneratedAt"></dd></div>
+              <div><dt>Prepared by</dt><dd id="printPreparedBy"></dd></div>
+            </dl>
+          </header>
+
+          <section class="report-summary-grid" id="reportSummary"></section>
+
+          <section class="report-section">
+            <h3>Department Summary</h3>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead>
+                  <tr>
+                    <th>Department</th>
+                    <th>Records</th>
+                    <th>Total Qty</th>
+                    <th>Good</th>
+                    <th>Outdated</th>
+                    <th>Repair</th>
+                    <th>Replacement</th>
+                    <th>Missing</th>
+                  </tr>
+                </thead>
+                <tbody id="departmentReportRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="report-section">
+            <h3>Inventory Items</h3>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead>
+                  <tr>
+                    <th>Department</th>
+                    <th>Equipment</th>
+                    <th>Quantity</th>
+                    <th>Acquired</th>
+                    <th>Condition</th>
+                    <th>Comments</th>
+                    <th>Date Added</th>
+                  </tr>
+                </thead>
+                <tbody id="itemReportRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <footer class="site-footer"><p>&copy; 2026 Excellence Oseagwina</p></footer>
+  <script src="../js/auth.js"></script>
+  <script src="../js/dashboard.js"></script>
+</body>
+</html>
