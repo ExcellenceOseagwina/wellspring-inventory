@@ -1,9 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Bio Chemistry Department - Wellspring Inventory</title><link rel="icon" href="../../assets/favicon.ico" type="image/x-icon"><link rel="stylesheet" href="../../css/style.css"></head>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bio Chemistry Department - Wellspring Inventory</title>
+  <link rel="icon" href="../../assets/apple-touch-icon.png" type="image/x-icon">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+
 <body data-department="bio-chemistry" data-department-name="Bio Chemistry">
-  <div class="app-shell"><header class="topbar"><div class="brand-row"><a class="logo-link" href="../../home.html" aria-label="Wellspring University home"><img src="../../assets/logo.png" alt="Wellspring University logo"></a><div class="brand"><h1 id="departmentTitle">Bio Chemistry Department</h1><p>Wellspring University Inventory</p></div></div><div class="auth-actions"><a class="btn secondary" href="../../home.html">Back to Home</a><a class="btn secondary" href="../dashboard.html">Dashboard</a><a class="btn secondary" href="../recent-activity.html">Recent Activity</a><button class="btn primary" onclick="showAddModal()">Add Equipment</button></div></header><main class="content"><section id="itemsContainer" class="equipment-grid"></section></main><div id="modal" class="modal"><section class="form-panel"><h2>Add New Equipment</h2><form id="itemForm"><label>Item Name<input type="text" id="name" required></label><label>Quantity<input type="number" id="quantity" min="1" value="1" required></label><label>Date of Item Acquisition<input type="date" id="acquisitionDate"></label><label>Condition<select id="condition" required><option value="good">Good</option><option value="outdated">Outdated</option><option value="for_repair">For Repair</option><option value="for_replacement">For Replacement</option><option value="missing">Missing</option></select></label><label>Image<input type="file" id="image" accept="image/*"></label><label>Video<input type="file" id="video" accept="video/*"></label><label>Comments<textarea id="comments" rows="4"></textarea></label><div class="form-actions"><button type="button" class="btn secondary" onclick="closeModal()">Cancel</button><button type="submit" class="btn primary">Save Equipment</button></div></form></section></div></div>
-  <footer class="site-footer"><p>&copy; 2026 Excellence Oseagwina</p></footer>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-row"><a class="logo-link" href="../../home.html" aria-label="Wellspring University home"><img
+            src="../../assets/logo.png" alt="Wellspring University logo"></a>
+        <div class="brand">
+          <h1 id="departmentTitle">Bio Chemistry Department</h1>
+          <p>Wellspring University Inventory</p>
+        </div>
+      </div>
+      <div class="auth-actions"><a class="btn secondary" href="../../home.html">Back to Home</a><a class="btn secondary"
+          href="../dashboard.html">Dashboard</a><a class="btn secondary" href="../recent-activity.html">Recent
+          Activity</a><button class="btn primary" onclick="showAddModal()">Add Equipment</button></div>
+    </header>
+    <main class="content">
+      <section id="itemsContainer" class="equipment-grid"></section>
+    </main>
+    <div id="modal" class="modal">
+      <section class="form-panel">
+        <h2>Add New Equipment</h2>
+        <form id="itemForm"><label>Item Name<input type="text" id="name" required></label><label>Quantity<input
+              type="number" id="quantity" min="1" value="1" required></label><label>Date of Item Acquisition<input
+              type="date" id="acquisitionDate"></label><label>Condition<select id="condition" required>
+              <option value="good">Good</option>
+              <option value="outdated">Outdated</option>
+              <option value="for_repair">For Repair</option>
+              <option value="for_replacement">For Replacement</option>
+              <option value="missing">Missing</option>
+            </select></label><label>Image<input type="file" id="image" accept="image/*"></label><label>Video<input
+              type="file" id="video" accept="video/*"></label><label>Comments<textarea id="comments"
+              rows="4"></textarea></label>
+          <div class="form-actions"><button type="button" class="btn secondary"
+              onclick="closeModal()">Cancel</button><button type="submit" class="btn primary">Save Equipment</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+  <footer class="site-footer">
+    <p>&copy; 2026 Excellence Oseagwina</p>
+  </footer>
   <script src="../../js/department.js"></script>
 </body>
+
 </html>
