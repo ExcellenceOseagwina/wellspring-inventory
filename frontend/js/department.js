@@ -13,6 +13,11 @@ const conditionLabels = {
 let currentItems = [];
 let editingItem = null;
 let currentSearchTerm = "";
+let inventoryEventsChannel = null;
+
+if ("BroadcastChannel" in window) {
+  inventoryEventsChannel = new BroadcastChannel("inventory-events");
+}
 
 function getStoredUserName() {
   try {
@@ -71,6 +76,18 @@ function showToast(message) {
   showToast.timeout = setTimeout(() => {
     toast.classList.remove("show");
   }, 2600);
+}
+
+function notifyInventoryChanged(action, itemId = "") {
+  const event = {
+    action,
+    itemId,
+    department: DEPT,
+    changedAt: new Date().toISOString()
+  };
+
+  localStorage.setItem("inventory:lastChanged", JSON.stringify(event));
+  inventoryEventsChannel?.postMessage(event);
 }
 
 function showConfirmModal({
@@ -362,7 +379,8 @@ async function deleteItem(id) {
     alert(data.error || "Delete failed");
     return;
   }
-  loadItems();
+  await loadItems();
+  notifyInventoryChanged("deleted", id);
 }
 
 document.getElementById("departmentTitle").textContent = `${DEPT_NAME} Department`;
@@ -423,6 +441,7 @@ document.getElementById("itemForm").addEventListener("submit", async (e) => {
     if (res.ok) {
       closeModal();
       await loadItems();
+      notifyInventoryChanged(isEditing ? "edited" : "added", responseData.id || editingItem?.id);
       showToast(isEditing ? "Item updated successfully" : "Item added successfully");
     } else {
       alert(responseData.error || "Could not save equipment");

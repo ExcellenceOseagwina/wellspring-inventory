@@ -18,6 +18,15 @@ const conditionLabels = {
   missing: "Missing"
 };
 
+const DASHBOARD_REFRESH_DEBOUNCE_MS = 250;
+let dashboardRefreshTimeout = null;
+let lastDashboardChangeKey = "";
+let dashboardEventsChannel = null;
+
+if ("BroadcastChannel" in window) {
+  dashboardEventsChannel = new BroadcastChannel("inventory-events");
+}
+
 function escapeHtml(value = "") {
   return String(value).replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
@@ -68,6 +77,49 @@ async function loadDashboard() {
     const notice = document.getElementById("dashboardNotice");
     if (notice) notice.textContent = err.message;
   }
+}
+
+function scheduleDashboardRefresh(changeEvent = {}) {
+  const changeKey = `${changeEvent.action || "changed"}:${changeEvent.itemId || ""}:${changeEvent.changedAt || ""}`;
+  if (changeKey === lastDashboardChangeKey) return;
+  lastDashboardChangeKey = changeKey;
+
+  clearTimeout(dashboardRefreshTimeout);
+  dashboardRefreshTimeout = setTimeout(() => {
+    loadDashboard();
+    refreshOpenReport();
+  }, DASHBOARD_REFRESH_DEBOUNCE_MS);
+}
+
+function setupAutoDashboardRefresh() {
+  window.addEventListener("storage", (event) => {
+    if (event.key !== "inventory:lastChanged" || !event.newValue) return;
+
+    try {
+      scheduleDashboardRefresh(JSON.parse(event.newValue));
+    } catch (err) {
+      scheduleDashboardRefresh();
+    }
+  });
+
+  dashboardEventsChannel?.addEventListener("message", (event) => {
+    scheduleDashboardRefresh(event.data || {});
+  });
+
+  window.addEventListener("focus", () => {
+    const latestChange = localStorage.getItem("inventory:lastChanged");
+    if (!latestChange) return;
+
+    try {
+      scheduleDashboardRefresh(JSON.parse(latestChange));
+    } catch (err) {
+      scheduleDashboardRefresh();
+    }
+  });
+
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) loadDashboard();
+  });
 }
 
 function renderReportSummary(summary) {
@@ -126,34 +178,59 @@ function renderItemRows(items = []) {
   `).join("");
 }
 
-async function generateReport() {
-  const token = localStorage.getItem("token");
+function renderReport(data, { scroll = false } = {}) {
   const reportPanel = document.getElementById("reportPanel");
+  const generatedAt = formatReportDate(data.generatedAt);
+
+  document.getElementById("reportGeneratedAt").textContent = `Generated ${generatedAt}`;
+  document.getElementById("printGeneratedAt").textContent = generatedAt;
+  document.getElementById("printPreparedBy").textContent = getStoredDashboardUserName();
+  renderReportSummary(data.summary || {});
+  renderDepartmentRows(data.departmentSummary || []);
+  renderItemRows(data.items || []);
+  reportPanel.hidden = false;
+
+  if (scroll) {
+    reportPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+async function fetchReportData() {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  const res = await fetch(`${INVENTORY_API}/report`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Could not generate report");
+  return data;
+}
+
+async function refreshOpenReport() {
+  const reportPanel = document.getElementById("reportPanel");
+  const notice = document.getElementById("dashboardNotice");
+  if (!reportPanel || reportPanel.hidden) return;
+
+  try {
+    const data = await fetchReportData();
+    if (data) renderReport(data);
+  } catch (err) {
+    if (notice) notice.textContent = err.message;
+  }
+}
+
+async function generateReport() {
   const reportButton = document.getElementById("generateReportBtn");
   const notice = document.getElementById("dashboardNotice");
-
-  if (!token) return;
 
   reportButton.disabled = true;
   reportButton.textContent = "Generating...";
   if (notice) notice.textContent = "";
 
   try {
-    const res = await fetch(`${INVENTORY_API}/report`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Could not generate report");
-
-    const generatedAt = formatReportDate(data.generatedAt);
-    document.getElementById("reportGeneratedAt").textContent = `Generated ${generatedAt}`;
-    document.getElementById("printGeneratedAt").textContent = generatedAt;
-    document.getElementById("printPreparedBy").textContent = getStoredDashboardUserName();
-    renderReportSummary(data.summary || {});
-    renderDepartmentRows(data.departmentSummary || []);
-    renderItemRows(data.items || []);
-    reportPanel.hidden = false;
-    reportPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    const data = await fetchReportData();
+    if (data) renderReport(data, { scroll: true });
   } catch (err) {
     if (notice) notice.textContent = err.message;
   } finally {
@@ -165,4 +242,5 @@ async function generateReport() {
 document.getElementById("generateReportBtn")?.addEventListener("click", generateReport);
 document.getElementById("printReportBtn")?.addEventListener("click", () => window.print());
 
+setupAutoDashboardRefresh();
 loadDashboard();
