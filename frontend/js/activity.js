@@ -18,6 +18,12 @@ const activityDepartmentLabels = {
   "biological-science": "Biological Science"
 };
 
+const activityActionLabels = {
+  added: "Added",
+  edited: "Edited",
+  deleted: "Deleted"
+};
+
 function escapeActivityHtml(value = "") {
   return String(value).replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
@@ -61,21 +67,25 @@ function renderActivity(items) {
     const department = activityDepartmentLabels[item.department] || item.department;
     const condition = activityConditionLabels[item.condition] || item.condition;
     const departmentUrl = `departments/${escapeActivityHtml(item.department)}.html`;
+    const action = item.action || "added";
+    const actionLabel = activityActionLabels[action] || action;
+    const timeValue = item.created_at || item.item_created_at || "";
 
     return `
-      <article class="activity-item">
+      <article class="activity-item ${action === "deleted" ? "is-deleted" : ""}">
         <div class="activity-main">
+          <span class="activity-action ${escapeActivityHtml(action)}">${escapeActivityHtml(actionLabel)}</span>
           <span class="badge ${escapeActivityHtml(item.condition)}">${escapeActivityHtml(condition)}</span>
           <h3>${escapeActivityHtml(item.name)}</h3>
           <div class="activity-meta">
-            Added to <a class="home-link" href="${departmentUrl}">${escapeActivityHtml(department)}</a>
+            ${action === "deleted" ? "Deleted from" : "Recorded in"} <a class="home-link" href="${departmentUrl}">${escapeActivityHtml(department)}</a>
             &middot; Quantity ${escapeActivityHtml(item.quantity || 1)}
             &middot; Acquired ${escapeActivityHtml(formatAcquisitionDate(item.acquisition_date))}
           </div>
           <p class="muted">${escapeActivityHtml(item.comments || "No comments added.")}</p>
         </div>
-        <time class="activity-time" datetime="${escapeActivityHtml(item.created_at || "")}">
-          ${escapeActivityHtml(formatActivityDate(item.created_at))}
+        <time class="activity-time" datetime="${escapeActivityHtml(timeValue)}">
+          ${escapeActivityHtml(formatActivityDate(timeValue))}
         </time>
       </article>
     `;

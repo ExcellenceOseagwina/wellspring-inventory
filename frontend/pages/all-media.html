@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wellspring University - Item Media</title>
+  <link rel="icon" href="../assets/apple-touch-icon.png" type="image/x-icon">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body onload="checkAuth()">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-row">
+        <a class="logo-link" href="../home.html" aria-label="Wellspring University home">
+          <img src="../assets/logo.png" alt="Wellspring University logo">
+        </a>
+        <div class="brand">
+          <h1>Item Media</h1>
+          <p>All uploaded equipment images and videos</p>
+        </div>
+      </div>
+      <div class="auth-actions">
+        <a class="btn secondary" href="dashboard.html">Dashboard</a>
+        <a class="btn secondary" href="recent-activity.html">Recent Activity</a>
+        <button class="btn secondary" onclick="logout()">Sign out</button>
+      </div>
+    </header>
+    <main class="content media-page">
+      <p id="mediaNotice" class="error"></p>
+      <section class="section-head">
+        <div>
+          <h2>All Item Media</h2>
+          <p id="mediaCount" class="muted"></p>
+        </div>
+      </section>
+      <section id="mediaGallery" class="media-gallery">
+        <div class="notice">Loading item media...</div>
+      </section>
+    </main>
+  </div>
+  <footer class="site-footer"><p>&copy; 2026 Excellence Oseagwina</p></footer>
+  <script src="../js/auth.js"></script>
+  <script src="../js/media.js"></script>
+</body>
+</html>

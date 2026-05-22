@@ -31,6 +31,12 @@ const handleInventoryError = (res, error) => {
   return res.status(500).json({ error: error.message });
 };
 
+const isMissingActivityTableError = (error) => (
+  error?.code === "42P01" ||
+  error?.message?.includes("inventory_activity") ||
+  error?.message?.includes("schema cache")
+);
+
 const isValidDateValue = (value) => {
   if (!value) return true;
   const date = new Date(value);
@@ -44,6 +50,7 @@ const getApiInfo = (req, res) => {
       dashboard: "GET /api/inventory/dashboard",
       report: "GET /api/inventory/report",
       activity: "GET /api/inventory/activity",
+      media: "GET /api/inventory/media",
       departmentItems: "GET /api/inventory/department/:dept",
       createItem: "POST /api/inventory/items",
       updateItem: "PUT /api/inventory/items/:id",
@@ -51,6 +58,59 @@ const getApiInfo = (req, res) => {
       upload: "POST /api/inventory/upload"
     }
   });
+};
+
+const itemSnapshotFields = "id, department, name, quantity, condition, acquisition_date, comments, image_url, video_url, created_by, created_at";
+
+const buildActivityRecord = (action, item, createdAt = new Date().toISOString(), actorId = null) => ({
+  action,
+  item_id: item.id,
+  department: item.department,
+  name: item.name,
+  quantity: item.quantity,
+  condition: item.condition,
+  acquisition_date: item.acquisition_date,
+  comments: item.comments,
+  image_url: item.image_url,
+  video_url: item.video_url,
+  item_created_at: item.created_at,
+  created_by: actorId,
+  created_at: createdAt
+});
+
+const normalizeActivityRows = (rows = []) => rows.map((row) => {
+  const snapshot = row.snapshot || {};
+  return buildActivityRecord(
+    row.action,
+    {
+      id: row.item_id || snapshot.id,
+      department: snapshot.department,
+      name: snapshot.name,
+      quantity: snapshot.quantity,
+      condition: snapshot.condition,
+      acquisition_date: snapshot.acquisition_date,
+      comments: snapshot.comments,
+      image_url: snapshot.image_url,
+      video_url: snapshot.video_url,
+      created_by: snapshot.created_by,
+      created_at: snapshot.created_at
+    },
+    row.created_at,
+    row.created_by
+  );
+});
+
+const logInventoryActivity = async (db, req, action, item) => {
+  if (!item?.id) return;
+
+  const { error } = await db.from("inventory_activity").insert({
+    item_id: item.id,
+    action,
+    snapshot: item,
+    created_by: req.user?.id || null
+  });
+
+  if (error && !isMissingActivityTableError(error)) throw error;
 };
 
 const getDashboard = async (req, res) => {
@@ -96,6 +156,16 @@ const getReport = async (req, res) => {
       .order("name", { ascending: true });
 
     if (error) throw error;
+
+    let activity = [];
+    const { data: activityRows, error: activityError } = await db
+      .from("inventory_activity")
+      .select("id, item_id, action, snapshot, created_by, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (activityError && !isMissingActivityTableError(activityError)) throw activityError;
+    if (!activityError) activity = normalizeActivityRows(activityRows);
 
     const summary = {
       total: 0,
@@ -148,7 +218,8 @@ const getReport = async (req, res) => {
       generatedAt: new Date().toISOString(),
       summary,
       departmentSummary,
-      items
+      items,
+      activity
     });
   } catch (error) {
     handleInventoryError(res, error);
@@ -159,10 +230,35 @@ const getActivity = async (req, res) => {
   try {
     const db = supabase.forRequest(req);
     const { data, error } = await db
-      .from("inventory_items")
-      .select("id, department, name, quantity, condition, acquisition_date, comments, created_at")
+      .from("inventory_activity")
+      .select("id, item_id, action, snapshot, created_by, created_at")
       .order("created_at", { ascending: false })
       .limit(50);
+
+    if (!error) return res.json(normalizeActivityRows(data));
+    if (!isMissingActivityTableError(error)) throw error;
+
+    const { data: items, error: itemsError } = await db
+      .from("inventory_items")
+      .select(itemSnapshotFields)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (itemsError) throw itemsError;
+    res.json(items.map((item) => buildActivityRecord("added", item, item.created_at, item.created_by)));
+  } catch (error) {
+    handleInventoryError(res, error);
+  }
+};
+
+const getMedia = async (req, res) => {
+  try {
+    const db = supabase.forRequest(req);
+    const { data, error } = await db
+      .from("inventory_items")
+      .select(itemSnapshotFields)
+      .or("image_url.not.is.null,video_url.not.is.null")
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
     res.json(data);
@@ -220,6 +316,7 @@ const createItem = async (req, res) => {
       .single();
 
     if (error) throw error;
+    await logInventoryActivity(db, req, "added", data);
     res.status(201).json(data);
   } catch (error) {
     handleInventoryError(res, error);
@@ -271,6 +368,7 @@ const updateItem = async (req, res) => {
       });
     }
 
+    await logInventoryActivity(db, req, "edited", data);
     res.json(data);
   } catch (error) {
     handleInventoryError(res, error);
@@ -280,8 +378,19 @@ const updateItem = async (req, res) => {
 const deleteItem = async (req, res) => {
   try {
     const db = supabase.forRequest(req);
+    const { data: existingItem, error: lookupError } = await db
+      .from("inventory_items")
+      .select(itemSnapshotFields)
+      .eq("id", req.params.id)
+      .maybeSingle();
+
+    if (lookupError) throw lookupError;
+    if (!existingItem) return res.status(404).json({ error: "Equipment item was not found" });
+
     const { error } = await db.from("inventory_items").delete().eq("id", req.params.id);
     if (error) throw error;
+
+    await logInventoryActivity(db, req, "deleted", existingItem);
 
     res.json({ success: true, message: "Item deleted" });
   } catch (error) {
@@ -316,6 +425,7 @@ module.exports = {
   getDashboard,
   getReport,
   getActivity,
+  getMedia,
   getDepartmentItems,
   createItem,
   updateItem,

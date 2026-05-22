@@ -4,6 +4,7 @@ const {
   getDashboard,
   getReport,
   getActivity,
+  getMedia,
   getDepartmentItems,
   createItem,
   updateItem,
@@ -19,6 +20,7 @@ router.get("/", getApiInfo);
 router.get("/dashboard", authenticate, getDashboard);
 router.get("/report", authenticate, getReport);
 router.get("/activity", authenticate, getActivity);
+router.get("/media", authenticate, getMedia);
 router.get("/department/:dept", authenticate, getDepartmentItems);
 router.post("/items", authenticate, createItem);
 router.put("/items/:id", authenticate, updateItem);

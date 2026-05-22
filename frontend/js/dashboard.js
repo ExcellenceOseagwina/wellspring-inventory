@@ -18,6 +18,12 @@ const conditionLabels = {
   missing: "Missing"
 };
 
+const actionLabels = {
+  added: "Added",
+  edited: "Edited",
+  deleted: "Deleted"
+};
+
 const DASHBOARD_REFRESH_DEBOUNCE_MS = 250;
 let dashboardRefreshTimeout = null;
 let lastDashboardChangeKey = "";
@@ -178,6 +184,32 @@ function renderItemRows(items = []) {
   `).join("");
 }
 
+function renderActivityRows(activity = []) {
+  const rows = document.getElementById("activityReportRows");
+  if (!rows) return;
+
+  if (!activity.length) {
+    rows.innerHTML = '<tr><td colspan="7">No recent activity has been recorded yet.</td></tr>';
+    return;
+  }
+
+  rows.innerHTML = activity.map((item) => {
+    const action = item.action || "added";
+
+    return `
+      <tr>
+        <td>${escapeHtml(actionLabels[action] || action)}</td>
+        <td>${escapeHtml(departmentLabels[item.department] || item.department)}</td>
+        <td>${escapeHtml(item.name || "Unnamed equipment")}${action === "deleted" ? " (deleted)" : ""}</td>
+        <td>${escapeHtml(item.quantity || 1)}</td>
+        <td>${escapeHtml(conditionLabels[item.condition] || item.condition || "Not set")}</td>
+        <td>${escapeHtml(item.comments || "No comments")}</td>
+        <td>${escapeHtml(formatReportDate(item.created_at))}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
 function renderReport(data, { scroll = false } = {}) {
   const reportPanel = document.getElementById("reportPanel");
   const generatedAt = formatReportDate(data.generatedAt);
@@ -188,6 +220,7 @@ function renderReport(data, { scroll = false } = {}) {
   renderReportSummary(data.summary || {});
   renderDepartmentRows(data.departmentSummary || []);
   renderItemRows(data.items || []);
+  renderActivityRows(data.activity || []);
   reportPanel.hidden = false;
 
   if (scroll) {

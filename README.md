@@ -97,6 +97,27 @@ check (condition in ('good', 'outdated', 'for_repair', 'for_replacement', 'missi
 
 You can also run the same fix from `backend/sql/allow-missing-condition.sql`.
 
+To keep a permanent recent activity history, including deleted item details, run:
+
+```sql
+create table if not exists inventory_activity (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid,
+  action text not null check (action in ('added', 'edited', 'deleted')),
+  snapshot jsonb not null,
+  created_by uuid references auth.users(id),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists inventory_activity_created_at_idx
+on inventory_activity (created_at desc);
+
+create index if not exists inventory_activity_item_id_idx
+on inventory_activity (item_id);
+```
+
+You can also run this from `backend/sql/add-inventory-activity.sql`.
+
 For a class project, the backend uses the Supabase service role key and protects routes with the logged-in user's access token. Keep the service role key only in `backend/.env`.
 
 ## Environment Variables
@@ -130,7 +151,9 @@ Open the frontend by launching `frontend/home.html` in your browser. The fronten
 
 - Sign up, sign in, and forgot password pages.
 - Main dashboard with total equipment, number of departments, outdated equipment, equipment for repair, equipment for replacement, missing equipment, and good equipment.
-- Recent activity page showing the latest added inventory records.
+- Recent activity page showing added, edited, and deleted inventory records.
+- All media page for viewing uploaded equipment images and videos.
 - Department links for Computing, Nursing, Accounting, Public Health, Mass Communication, Bio Chemistry, and Biological Science.
 - Add equipment per department with item name, quantity, condition, image, video, and comments.
 - Edit and delete equipment records per department.
+- Printable reports include current inventory and recent activity history.
