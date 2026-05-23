@@ -79,6 +79,11 @@ async function loadDashboard() {
     document.getElementById("repair").textContent = data.repair || 0;
     document.getElementById("replacement").textContent = data.replacement || 0;
     document.getElementById("missing").textContent = data.missing || 0;
+
+    document.querySelectorAll("[data-department-total]").forEach((element) => {
+      const department = element.dataset.departmentTotal;
+      element.textContent = data.departmentTotals?.[department] || 0;
+    });
   } catch (err) {
     const notice = document.getElementById("dashboardNotice");
     if (notice) notice.textContent = err.message;

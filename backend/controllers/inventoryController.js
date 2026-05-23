@@ -116,12 +116,18 @@ const logInventoryActivity = async (db, req, action, item) => {
 const getDashboard = async (req, res) => {
   try {
     const db = supabase.forRequest(req);
-    const { data: items, error } = await db.from("inventory_items").select("condition, quantity");
+    const { data: items, error } = await db.from("inventory_items").select("department, condition, quantity");
     if (error) throw error;
+
+    const departmentTotals = departments.reduce((totals, department) => {
+      totals[department] = 0;
+      return totals;
+    }, {});
 
     const counts = {
       total: items.length,
       departments: departments.length,
+      departmentTotals,
       good: 0,
       outdated: 0,
       repair: 0,
@@ -133,6 +139,9 @@ const getDashboard = async (req, res) => {
 
     items.forEach((item) => {
       const quantity = Number(item.quantity) || 1;
+      if (Object.prototype.hasOwnProperty.call(departmentTotals, item.department)) {
+        departmentTotals[item.department] += quantity;
+      }
       if (item.condition === "good") counts.good += quantity;
       if (item.condition === "outdated") counts.outdated += quantity;
       if (item.condition === "for_repair") counts.repair += quantity;

@@ -206,6 +206,11 @@ textarea {
   margin-top: 8px;
 }
 
+.department-card b {
+  color: var(--brand);
+  font-size: 1.15rem;
+}
+
 .report-panel {
   background: var(--panel);
   border: 1px solid var(--line);
