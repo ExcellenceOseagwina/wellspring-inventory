@@ -28,6 +28,14 @@ function escapeMediaHtml(value = "") {
   }[char]));
 }
 
+function labelFromMediaDepartmentSlug(slug = "") {
+  return String(slug)
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function mediaPreviewMarkup(item) {
   const parts = [];
 
@@ -108,7 +116,7 @@ function renderMedia(items = []) {
   }
 
   gallery.innerHTML = items.map((item) => {
-    const department = mediaDepartmentLabels[item.department] || item.department;
+    const department = mediaDepartmentLabels[item.department] || labelFromMediaDepartmentSlug(item.department);
     const condition = mediaConditionLabels[item.condition] || item.condition;
 
     return `

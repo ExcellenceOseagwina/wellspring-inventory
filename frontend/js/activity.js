@@ -55,6 +55,22 @@ function formatAcquisitionDate(value) {
   }).format(date);
 }
 
+function labelFromDepartmentSlug(slug = "") {
+  return String(slug)
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getActivityDepartmentUrl(slug, name) {
+  const params = new URLSearchParams({
+    dept: slug,
+    name
+  });
+  return `departments/department.html?${params.toString()}`;
+}
+
 function renderActivity(items) {
   const list = document.getElementById("activityList");
 
@@ -64,9 +80,9 @@ function renderActivity(items) {
   }
 
   list.innerHTML = items.map((item) => {
-    const department = activityDepartmentLabels[item.department] || item.department;
+    const department = activityDepartmentLabels[item.department] || labelFromDepartmentSlug(item.department);
     const condition = activityConditionLabels[item.condition] || item.condition;
-    const departmentUrl = `departments/${escapeActivityHtml(item.department)}.html`;
+    const departmentUrl = getActivityDepartmentUrl(item.department, department);
     const action = item.action || "added";
     const actionLabel = activityActionLabels[action] || action;
     const timeValue = item.created_at || item.item_created_at || "";
