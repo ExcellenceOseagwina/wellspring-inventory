@@ -72,6 +72,10 @@ const writeLocalItems = (items) => {
   fs.writeFileSync(localItemsDataFile, `${JSON.stringify(items, null, 2)}\n`);
 };
 
+const findLocalItem = (itemId) => readLocalItems().find((item) => String(item.id) === String(itemId));
+
+const isNumericItemId = (itemId) => /^\d+$/.test(String(itemId || ""));
+
 const isDepartmentConstraintError = (error) => (
   error?.message?.includes("inventory_items_department_check") ||
   (
@@ -578,6 +582,29 @@ const updateItem = async (req, res) => {
   if (!isValidDateValue(acquisition_date)) return res.status(400).json({ error: "Invalid acquisition date" });
 
   try {
+    const localItem = findLocalItem(itemId);
+    if (localItem) {
+      const localItems = readLocalItems();
+      const updatedItem = {
+        ...localItem,
+        name,
+        quantity: itemQuantity,
+        condition,
+        acquisition_date: acquisition_date || null,
+        comments,
+        image_url,
+        video_url
+      };
+      writeLocalItems(localItems.map((item) => (
+        String(item.id) === String(itemId) ? updatedItem : item
+      )));
+      return res.json(updatedItem);
+    }
+
+    if (!isNumericItemId(itemId)) {
+      return res.status(404).json({ error: `Equipment item ${itemId} was not found` });
+    }
+
     const db = supabase.forRequest(req);
     const { data: existingItem, error: lookupError } = await db
       .from("inventory_items")
@@ -587,25 +614,6 @@ const updateItem = async (req, res) => {
 
     if (lookupError) throw lookupError;
     if (!existingItem) {
-      const localItems = readLocalItems();
-      const localItem = localItems.find((item) => String(item.id) === String(itemId));
-      if (localItem) {
-        const updatedItem = {
-          ...localItem,
-          name,
-          quantity: itemQuantity,
-          condition,
-          acquisition_date: acquisition_date || null,
-          comments,
-          image_url,
-          video_url
-        };
-        writeLocalItems(localItems.map((item) => (
-          String(item.id) === String(itemId) ? updatedItem : item
-        )));
-        return res.json(updatedItem);
-      }
-
       return res.status(404).json({ error: `Equipment item ${itemId} was not found` });
     }
 
@@ -640,6 +648,17 @@ const updateItem = async (req, res) => {
 
 const deleteItem = async (req, res) => {
   try {
+    const localItem = findLocalItem(req.params.id);
+    if (localItem) {
+      const localItems = readLocalItems();
+      writeLocalItems(localItems.filter((item) => String(item.id) !== String(req.params.id)));
+      return res.json({ success: true, message: "Item deleted" });
+    }
+
+    if (!isNumericItemId(req.params.id)) {
+      return res.status(404).json({ error: "Equipment item was not found" });
+    }
+
     const db = supabase.forRequest(req);
     const { data: existingItem, error: lookupError } = await db
       .from("inventory_items")
@@ -649,12 +668,7 @@ const deleteItem = async (req, res) => {
 
     if (lookupError) throw lookupError;
     if (!existingItem) {
-      const localItems = readLocalItems();
-      const localItem = localItems.find((item) => String(item.id) === String(req.params.id));
-      if (!localItem) return res.status(404).json({ error: "Equipment item was not found" });
-
-      writeLocalItems(localItems.filter((item) => String(item.id) !== String(req.params.id)));
-      return res.json({ success: true, message: "Item deleted" });
+      return res.status(404).json({ error: "Equipment item was not found" });
     }
 
     const { error } = await db.from("inventory_items").delete().eq("id", req.params.id);

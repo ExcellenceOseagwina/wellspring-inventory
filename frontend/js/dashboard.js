@@ -163,7 +163,11 @@ async function createDepartment(event) {
 async function deleteDepartment(slug) {
   const department = currentDepartments.find((record) => record.slug === slug);
   const name = department?.name || slug;
-  const confirmed = window.confirm(`Delete ${name} department? This only works when the department has no equipment records.`);
+  const confirmed = await showConfirmModal({
+    title: `Delete ${name} department?`,
+    message: "This only works when the department has no equipment records.",
+    confirmText: "Delete"
+  });
   if (!confirmed) return;
 
   const token = localStorage.getItem("token");
