@@ -1,0 +1,16 @@
+[
+  {
+    "id": "d6618609-6447-44cb-b86f-6236b55302c2",
+    "department": "cyber-security",
+    "name": "rrrrrrrr",
+    "quantity": 1,
+    "condition": "good",
+    "acquisition_date": "2222-02-22",
+    "comments": "eeeeeeeeee",
+    "image_url": "https://xlywzpbmhcodemljroye.supabase.co/storage/v1/object/public/inventory/images/1779710770199-Picture1.png",
+    "video_url": null,
+    "created_by": "52bb9eb0-91b5-400e-9af8-97c9c31383ce",
+    "created_at": "2026-05-25T12:06:12.280Z",
+    "stored_locally": true
+  }
+]

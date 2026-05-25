@@ -1,4 +1,5 @@
 const supabase = require("../config/supabase");
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
@@ -14,6 +15,7 @@ const defaultDepartments = [
 
 const conditions = ["good", "outdated", "for_repair", "for_replacement", "missing"];
 const departmentsDataFile = path.join(__dirname, "..", "data", "departments.json");
+const localItemsDataFile = path.join(__dirname, "..", "data", "inventory-items.json");
 
 const isMissingDepartmentsTableError = (error) => (
   error?.code === "42P01" ||
@@ -63,6 +65,44 @@ const writeLocalDepartments = (departments) => {
   );
 };
 
+const readLocalItems = () => {
+  try {
+    if (!fs.existsSync(localItemsDataFile)) return [];
+    const items = JSON.parse(fs.readFileSync(localItemsDataFile, "utf8"));
+    return Array.isArray(items) ? items : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+const writeLocalItems = (items) => {
+  fs.mkdirSync(path.dirname(localItemsDataFile), { recursive: true });
+  fs.writeFileSync(localItemsDataFile, `${JSON.stringify(items, null, 2)}\n`);
+};
+
+const isDepartmentConstraintError = (error) => (
+  error?.message?.includes("inventory_items_department_check") ||
+  (
+    error?.message?.includes("violates check constraint") &&
+    error?.message?.includes("department")
+  )
+);
+
+const createLocalItem = (req, item) => ({
+  id: crypto.randomUUID(),
+  department: item.department,
+  name: item.name,
+  quantity: item.quantity,
+  condition: item.condition,
+  acquisition_date: item.acquisition_date || null,
+  comments: item.comments || "",
+  image_url: item.image_url || null,
+  video_url: item.video_url || null,
+  created_by: req.user?.id || null,
+  created_at: new Date().toISOString(),
+  stored_locally: true
+});
+
 const getDepartments = async (db) => {
   const { data, error } = await db
     .from("departments")
@@ -83,7 +123,7 @@ const departmentExists = async (db, slug) => {
 };
 
 const handleInventoryError = (res, error) => {
-  if (error?.message?.includes("inventory_items_department_check")) {
+  if (isDepartmentConstraintError(error)) {
     return res.status(500).json({
       error: departmentMigrationError
     });
@@ -198,6 +238,7 @@ const getDashboard = async (req, res) => {
     const departments = await getDepartments(db);
     const { data: items, error } = await db.from("inventory_items").select("department, condition, quantity");
     if (error) throw error;
+    const allItems = [...items, ...readLocalItems()];
 
     const departmentTotals = departments.reduce((totals, department) => {
       totals[department.slug] = 0;
@@ -205,7 +246,7 @@ const getDashboard = async (req, res) => {
     }, {});
 
     const counts = {
-      total: items.length,
+      total: allItems.length,
       departments: departments.length,
       departmentList: departments,
       departmentTotals,
@@ -216,9 +257,9 @@ const getDashboard = async (req, res) => {
       missing: 0
     };
 
-    counts.total = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+    counts.total = allItems.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
 
-    items.forEach((item) => {
+    allItems.forEach((item) => {
       const quantity = Number(item.quantity) || 1;
       if (Object.prototype.hasOwnProperty.call(departmentTotals, item.department)) {
         departmentTotals[item.department] += quantity;
@@ -240,13 +281,17 @@ const getReport = async (req, res) => {
   try {
     const db = supabase.forRequest(req);
     const departments = await getDepartments(db);
-    const { data: items, error } = await db
+    const { data: dbItems, error } = await db
       .from("inventory_items")
       .select("id, department, name, quantity, condition, acquisition_date, comments, created_at")
       .order("department", { ascending: true })
       .order("name", { ascending: true });
 
     if (error) throw error;
+    const items = [...dbItems, ...readLocalItems()].sort((a, b) => (
+      String(a.department).localeCompare(String(b.department)) ||
+      String(a.name).localeCompare(String(b.name))
+    ));
 
     let activity = [];
     const { data: activityRows, error: activityError } = await db
@@ -327,7 +372,10 @@ const getActivity = async (req, res) => {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (!error) return res.json(normalizeActivityRows(data));
+    if (!error) {
+      const localItems = readLocalItems().map((item) => buildActivityRecord("added", item, item.created_at, item.created_by));
+      return res.json([...localItems, ...normalizeActivityRows(data)]);
+    }
     if (!isMissingActivityTableError(error)) throw error;
 
     const { data: items, error: itemsError } = await db
@@ -337,7 +385,11 @@ const getActivity = async (req, res) => {
       .limit(50);
 
     if (itemsError) throw itemsError;
-    res.json(items.map((item) => buildActivityRecord("added", item, item.created_at, item.created_by)));
+    const localItems = readLocalItems().map((item) => buildActivityRecord("added", item, item.created_at, item.created_by));
+    res.json([
+      ...localItems,
+      ...items.map((item) => buildActivityRecord("added", item, item.created_at, item.created_by))
+    ]);
   } catch (error) {
     handleInventoryError(res, error);
   }
@@ -353,7 +405,8 @@ const getMedia = async (req, res) => {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    res.json(data);
+    const localMediaItems = readLocalItems().filter((item) => item.image_url || item.video_url);
+    res.json([...localMediaItems, ...data]);
   } catch (error) {
     handleInventoryError(res, error);
   }
@@ -428,9 +481,11 @@ const deleteDepartment = async (req, res) => {
       .eq("department", slug);
 
     if (countError) throw countError;
-    if (count > 0) {
+    const localCount = readLocalItems().filter((item) => item.department === slug).length;
+    const itemCount = (count || 0) + localCount;
+    if (itemCount > 0) {
       return res.status(400).json({
-        error: `Move or delete the ${count} equipment record${count === 1 ? "" : "s"} in this department before deleting it.`
+        error: `Move or delete the ${itemCount} equipment record${itemCount === 1 ? "" : "s"} in this department before deleting it.`
       });
     }
 
@@ -463,7 +518,8 @@ const getDepartmentItems = async (req, res) => {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    res.json(data);
+    const localItems = readLocalItems().filter((item) => item.department === department);
+    res.json([...localItems, ...data]);
   } catch (error) {
     handleInventoryError(res, error);
   }
@@ -497,6 +553,20 @@ const createItem = async (req, res) => {
       .select()
       .single();
 
+    if (error && isDepartmentConstraintError(error)) {
+      const localItem = createLocalItem(req, {
+        department,
+        name,
+        quantity: itemQuantity,
+        condition,
+        acquisition_date,
+        comments,
+        image_url,
+        video_url
+      });
+      writeLocalItems([localItem, ...readLocalItems()]);
+      return res.status(201).json(localItem);
+    }
     if (error) throw error;
     await logInventoryActivity(db, req, "added", data);
     res.status(201).json(data);
@@ -525,6 +595,25 @@ const updateItem = async (req, res) => {
 
     if (lookupError) throw lookupError;
     if (!existingItem) {
+      const localItems = readLocalItems();
+      const localItem = localItems.find((item) => String(item.id) === String(itemId));
+      if (localItem) {
+        const updatedItem = {
+          ...localItem,
+          name,
+          quantity: itemQuantity,
+          condition,
+          acquisition_date: acquisition_date || null,
+          comments,
+          image_url,
+          video_url
+        };
+        writeLocalItems(localItems.map((item) => (
+          String(item.id) === String(itemId) ? updatedItem : item
+        )));
+        return res.json(updatedItem);
+      }
+
       return res.status(404).json({ error: `Equipment item ${itemId} was not found` });
     }
 
@@ -567,7 +656,14 @@ const deleteItem = async (req, res) => {
       .maybeSingle();
 
     if (lookupError) throw lookupError;
-    if (!existingItem) return res.status(404).json({ error: "Equipment item was not found" });
+    if (!existingItem) {
+      const localItems = readLocalItems();
+      const localItem = localItems.find((item) => String(item.id) === String(req.params.id));
+      if (!localItem) return res.status(404).json({ error: "Equipment item was not found" });
+
+      writeLocalItems(localItems.filter((item) => String(item.id) !== String(req.params.id)));
+      return res.json({ success: true, message: "Item deleted" });
+    }
 
     const { error } = await db.from("inventory_items").delete().eq("id", req.params.id);
     if (error) throw error;
