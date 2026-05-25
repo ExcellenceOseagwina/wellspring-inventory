@@ -1,4 +1,6 @@
 const supabase = require("../config/supabase");
+const fs = require("fs");
+const path = require("path");
 
 const defaultDepartments = [
   { slug: "computing", name: "Computing" },
@@ -11,6 +13,7 @@ const defaultDepartments = [
 ];
 
 const conditions = ["good", "outdated", "for_repair", "for_replacement", "missing"];
+const departmentsDataFile = path.join(__dirname, "..", "data", "departments.json");
 
 const isMissingDepartmentsTableError = (error) => (
   error?.code === "42P01" ||
@@ -18,7 +21,7 @@ const isMissingDepartmentsTableError = (error) => (
   error?.message?.includes("schema cache")
 );
 
-const departmentMigrationError = "Department management is not ready in the database yet. Run backend/sql/add-departments.sql in Supabase SQL editor, then restart the backend.";
+const departmentMigrationError = "The database still has the old fixed department rule. Run backend/sql/add-departments.sql in Supabase SQL editor before adding equipment to newly created departments.";
 
 const normalizeDepartmentName = (value = "") => String(value).trim().replace(/\s+/g, " ");
 
@@ -33,6 +36,33 @@ const normalizeDepartmentRows = (rows = []) => rows.map((department) => ({
   name: department.name
 }));
 
+const dedupeDepartments = (departments = []) => {
+  const seen = new Set();
+  return departments.filter((department) => {
+    if (!department?.slug || seen.has(department.slug)) return false;
+    seen.add(department.slug);
+    return true;
+  });
+};
+
+const readLocalDepartments = () => {
+  try {
+    if (!fs.existsSync(departmentsDataFile)) return defaultDepartments;
+    const departments = JSON.parse(fs.readFileSync(departmentsDataFile, "utf8"));
+    return dedupeDepartments(normalizeDepartmentRows(departments));
+  } catch (error) {
+    return defaultDepartments;
+  }
+};
+
+const writeLocalDepartments = (departments) => {
+  fs.mkdirSync(path.dirname(departmentsDataFile), { recursive: true });
+  fs.writeFileSync(
+    departmentsDataFile,
+    `${JSON.stringify(dedupeDepartments(departments), null, 2)}\n`
+  );
+};
+
 const getDepartments = async (db) => {
   const { data, error } = await db
     .from("departments")
@@ -40,7 +70,7 @@ const getDepartments = async (db) => {
     .order("name", { ascending: true });
 
   if (error) {
-    if (isMissingDepartmentsTableError(error)) return defaultDepartments;
+    if (isMissingDepartmentsTableError(error)) return readLocalDepartments();
     throw error;
   }
 
@@ -362,7 +392,19 @@ const createDepartment = async (req, res) => {
       return res.status(409).json({ error: "A department with this name already exists" });
     }
     if (error && isMissingDepartmentsTableError(error)) {
-      return res.status(500).json({ error: departmentMigrationError });
+      const departments = readLocalDepartments();
+      const exists = departments.some((department) => (
+        department.slug === slug ||
+        department.name.toLowerCase() === name.toLowerCase()
+      ));
+
+      if (exists) {
+        return res.status(409).json({ error: "A department with this name already exists" });
+      }
+
+      const department = { slug, name };
+      writeLocalDepartments([...departments, department]);
+      return res.status(201).json(department);
     }
     if (error) throw error;
 
@@ -394,7 +436,8 @@ const deleteDepartment = async (req, res) => {
 
     const { error } = await db.from("departments").delete().eq("slug", slug);
     if (error && isMissingDepartmentsTableError(error)) {
-      return res.status(500).json({ error: departmentMigrationError });
+      writeLocalDepartments(readLocalDepartments().filter((department) => department.slug !== slug));
+      return res.json({ success: true, message: "Department deleted" });
     }
     if (error) throw error;
 
