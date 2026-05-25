@@ -39,17 +39,12 @@
       </section>
       <section class="section-head">
         <h2>Departments</h2>
-        <button class="btn primary" type="button" id="generateReportBtn">Generate Report</button>
+        <div class="section-actions">
+          <button class="btn secondary" type="button" id="addDepartmentBtn">Add Department</button>
+          <button class="btn primary" type="button" id="generateReportBtn">Generate Report</button>
+        </div>
       </section>
-      <section class="department-grid" aria-label="Department item totals">
-        <a class="department-card" href="departments/computing.html"><strong>Computing</strong><span><b data-department-total="computing">0</b> items</span></a>
-        <a class="department-card" href="departments/nursing.html"><strong>Nursing</strong><span><b data-department-total="nursing">0</b> items</span></a>
-        <a class="department-card" href="departments/accounting.html"><strong>Accounting</strong><span><b data-department-total="accounting">0</b> items</span></a>
-        <a class="department-card" href="departments/public-health.html"><strong>Public Health</strong><span><b data-department-total="public-health">0</b> items</span></a>
-        <a class="department-card" href="departments/mass-communication.html"><strong>Mass Communication</strong><span><b data-department-total="mass-communication">0</b> items</span></a>
-        <a class="department-card" href="departments/bio-chemistry.html"><strong>Bio Chemistry</strong><span><b data-department-total="bio-chemistry">0</b> items</span></a>
-        <a class="department-card" href="departments/biological-science.html"><strong>Biological Science</strong><span><b data-department-total="biological-science">0</b> items</span></a>
-      </section>
+      <section class="department-grid" id="departmentGrid" aria-label="Department item totals"></section>
       <section class="report-panel" id="reportPanel" aria-live="polite" hidden>
         <div class="report-toolbar">
           <div>
@@ -139,6 +134,19 @@
         </div>
       </section>
     </main>
+    <div id="departmentModal" class="modal">
+      <section class="form-panel" role="dialog" aria-modal="true" aria-labelledby="departmentModalTitle">
+        <h2 id="departmentModalTitle">Add Department</h2>
+        <form id="departmentForm">
+          <label>Department Name<input type="text" id="departmentName" required></label>
+          <p class="muted">This creates a new department card on the dashboard.</p>
+          <div class="form-actions">
+            <button type="button" class="btn secondary" id="cancelDepartmentBtn">Cancel</button>
+            <button type="submit" class="btn primary">Save Department</button>
+          </div>
+        </form>
+      </section>
+    </div>
   </div>
   <footer class="site-footer"><p>&copy; 2026 Excellence Oseagwina</p></footer>
   <script src="../js/auth.js"></script>

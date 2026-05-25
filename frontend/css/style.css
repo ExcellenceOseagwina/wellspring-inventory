@@ -167,6 +167,12 @@ textarea {
   margin: 0;
 }
 
+.section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .department-grid,
 .equipment-grid {
   display: grid;
@@ -190,6 +196,16 @@ textarea {
   transition: border-color 0.2s, transform 0.2s;
 }
 
+.managed-department-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.department-card-link {
+  display: block;
+}
+
 .department-card:hover {
   border-color: var(--brand);
   transform: translateY(-2px);
@@ -209,6 +225,10 @@ textarea {
 .department-card b {
   color: var(--brand);
   font-size: 1.15rem;
+}
+
+.department-delete-btn {
+  align-self: flex-start;
 }
 
 .report-panel {
@@ -1013,6 +1033,7 @@ textarea {
   }
 
   .topbar .auth-actions,
+  .section-actions,
   .user-chip {
     width: 100%;
   }

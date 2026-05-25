@@ -1,6 +1,6 @@
 const INVENTORY_API = "http://localhost:5000/api/inventory";
 
-const departmentLabels = {
+let departmentLabels = {
   "computing": "Computing",
   "nursing": "Nursing",
   "accounting": "Accounting",
@@ -28,6 +28,7 @@ const DASHBOARD_REFRESH_DEBOUNCE_MS = 250;
 let dashboardRefreshTimeout = null;
 let lastDashboardChangeKey = "";
 let dashboardEventsChannel = null;
+let currentDepartments = [];
 
 if ("BroadcastChannel" in window) {
   dashboardEventsChannel = new BroadcastChannel("inventory-events");
@@ -49,6 +50,40 @@ function formatReportDate(value) {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
+}
+
+function getDepartmentPageUrl(department) {
+  const params = new URLSearchParams({
+    dept: department.slug,
+    name: department.name
+  });
+  return `departments/department.html?${params.toString()}`;
+}
+
+function renderDepartments(departments = [], totals = {}) {
+  const grid = document.getElementById("departmentGrid");
+  if (!grid) return;
+
+  currentDepartments = departments;
+  departmentLabels = departments.reduce((labels, department) => {
+    labels[department.slug] = department.name;
+    return labels;
+  }, { ...departmentLabels });
+
+  if (!departments.length) {
+    grid.innerHTML = '<div class="empty-state">No departments have been added yet.</div>';
+    return;
+  }
+
+  grid.innerHTML = departments.map((department) => `
+    <article class="department-card managed-department-card">
+      <a class="department-card-link" href="${escapeHtml(getDepartmentPageUrl(department))}">
+        <strong>${escapeHtml(department.name)}</strong>
+        <span><b data-department-total="${escapeHtml(department.slug)}">${escapeHtml(totals[department.slug] || 0)}</b> items</span>
+      </a>
+      <button class="btn danger department-delete-btn" type="button" data-delete-department="${escapeHtml(department.slug)}">Delete</button>
+    </article>
+  `).join("");
 }
 
 function getStoredDashboardUserName() {
@@ -79,13 +114,80 @@ async function loadDashboard() {
     document.getElementById("repair").textContent = data.repair || 0;
     document.getElementById("replacement").textContent = data.replacement || 0;
     document.getElementById("missing").textContent = data.missing || 0;
-
-    document.querySelectorAll("[data-department-total]").forEach((element) => {
-      const department = element.dataset.departmentTotal;
-      element.textContent = data.departmentTotals?.[department] || 0;
-    });
+    renderDepartments(data.departmentList || [], data.departmentTotals || {});
   } catch (err) {
     const notice = document.getElementById("dashboardNotice");
+    if (notice) notice.textContent = err.message;
+  }
+}
+
+function openDepartmentModal() {
+  const modal = document.getElementById("departmentModal");
+  const input = document.getElementById("departmentName");
+  document.getElementById("departmentForm").reset();
+  modal.classList.add("open");
+  input.focus();
+}
+
+function closeDepartmentModal() {
+  document.getElementById("departmentModal").classList.remove("open");
+}
+
+async function createDepartment(event) {
+  event.preventDefault();
+
+  const token = localStorage.getItem("token");
+  const notice = document.getElementById("dashboardNotice");
+  const submitButton = document.querySelector("#departmentForm button[type='submit']");
+  const name = document.getElementById("departmentName").value.trim();
+  if (!name) return;
+
+  submitButton.disabled = true;
+  submitButton.textContent = "Saving...";
+  if (notice) notice.textContent = "";
+
+  try {
+    const res = await fetch(`${INVENTORY_API}/departments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ name })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not add department");
+
+    closeDepartmentModal();
+    await loadDashboard();
+  } catch (err) {
+    if (notice) notice.textContent = err.message;
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Save Department";
+  }
+}
+
+async function deleteDepartment(slug) {
+  const department = currentDepartments.find((record) => record.slug === slug);
+  const name = department?.name || slug;
+  const confirmed = window.confirm(`Delete ${name} department? This only works when the department has no equipment records.`);
+  if (!confirmed) return;
+
+  const token = localStorage.getItem("token");
+  const notice = document.getElementById("dashboardNotice");
+  if (notice) notice.textContent = "";
+
+  try {
+    const res = await fetch(`${INVENTORY_API}/departments/${encodeURIComponent(slug)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not delete department");
+    await loadDashboard();
+    refreshOpenReport();
+  } catch (err) {
     if (notice) notice.textContent = err.message;
   }
 }
@@ -279,6 +381,17 @@ async function generateReport() {
 
 document.getElementById("generateReportBtn")?.addEventListener("click", generateReport);
 document.getElementById("printReportBtn")?.addEventListener("click", () => window.print());
+document.getElementById("addDepartmentBtn")?.addEventListener("click", openDepartmentModal);
+document.getElementById("cancelDepartmentBtn")?.addEventListener("click", closeDepartmentModal);
+document.getElementById("departmentForm")?.addEventListener("submit", createDepartment);
+document.getElementById("departmentModal")?.addEventListener("click", (event) => {
+  if (event.target.id === "departmentModal") closeDepartmentModal();
+});
+document.getElementById("departmentGrid")?.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-department]");
+  if (!deleteButton) return;
+  deleteDepartment(deleteButton.dataset.deleteDepartment);
+});
 
 setupAutoDashboardRefresh();
 loadDashboard();

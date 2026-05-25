@@ -1,18 +1,64 @@
 const supabase = require("../config/supabase");
 
-const departments = [
-  "computing",
-  "nursing",
-  "accounting",
-  "public-health",
-  "mass-communication",
-  "bio-chemistry",
-  "biological-science"
+const defaultDepartments = [
+  { slug: "computing", name: "Computing" },
+  { slug: "nursing", name: "Nursing" },
+  { slug: "accounting", name: "Accounting" },
+  { slug: "public-health", name: "Public Health" },
+  { slug: "mass-communication", name: "Mass Communication" },
+  { slug: "bio-chemistry", name: "Bio Chemistry" },
+  { slug: "biological-science", name: "Biological Science" }
 ];
 
 const conditions = ["good", "outdated", "for_repair", "for_replacement", "missing"];
 
+const isMissingDepartmentsTableError = (error) => (
+  error?.code === "42P01" ||
+  error?.message?.includes("departments") ||
+  error?.message?.includes("schema cache")
+);
+
+const departmentMigrationError = "Department management is not ready in the database yet. Run backend/sql/add-departments.sql in Supabase SQL editor, then restart the backend.";
+
+const normalizeDepartmentName = (value = "") => String(value).trim().replace(/\s+/g, " ");
+
+const slugifyDepartment = (value = "") => normalizeDepartmentName(value)
+  .toLowerCase()
+  .replace(/&/g, " and ")
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "");
+
+const normalizeDepartmentRows = (rows = []) => rows.map((department) => ({
+  slug: department.slug,
+  name: department.name
+}));
+
+const getDepartments = async (db) => {
+  const { data, error } = await db
+    .from("departments")
+    .select("slug, name")
+    .order("name", { ascending: true });
+
+  if (error) {
+    if (isMissingDepartmentsTableError(error)) return defaultDepartments;
+    throw error;
+  }
+
+  return normalizeDepartmentRows(data);
+};
+
+const departmentExists = async (db, slug) => {
+  const departments = await getDepartments(db);
+  return departments.some((department) => department.slug === slug);
+};
+
 const handleInventoryError = (res, error) => {
+  if (error?.message?.includes("inventory_items_department_check")) {
+    return res.status(500).json({
+      error: departmentMigrationError
+    });
+  }
+
   if (error?.message?.includes("inventory_items_condition_check")) {
     return res.status(500).json({
       error: "Database condition constraint is outdated. Run backend/sql/allow-missing-condition.sql in Supabase SQL editor."
@@ -51,6 +97,9 @@ const getApiInfo = (req, res) => {
       report: "GET /api/inventory/report",
       activity: "GET /api/inventory/activity",
       media: "GET /api/inventory/media",
+      departments: "GET /api/inventory/departments",
+      createDepartment: "POST /api/inventory/departments",
+      deleteDepartment: "DELETE /api/inventory/departments/:slug",
       departmentItems: "GET /api/inventory/department/:dept",
       createItem: "POST /api/inventory/items",
       updateItem: "PUT /api/inventory/items/:id",
@@ -116,17 +165,19 @@ const logInventoryActivity = async (db, req, action, item) => {
 const getDashboard = async (req, res) => {
   try {
     const db = supabase.forRequest(req);
+    const departments = await getDepartments(db);
     const { data: items, error } = await db.from("inventory_items").select("department, condition, quantity");
     if (error) throw error;
 
     const departmentTotals = departments.reduce((totals, department) => {
-      totals[department] = 0;
+      totals[department.slug] = 0;
       return totals;
     }, {});
 
     const counts = {
       total: items.length,
       departments: departments.length,
+      departmentList: departments,
       departmentTotals,
       good: 0,
       outdated: 0,
@@ -158,6 +209,7 @@ const getDashboard = async (req, res) => {
 const getReport = async (req, res) => {
   try {
     const db = supabase.forRequest(req);
+    const departments = await getDepartments(db);
     const { data: items, error } = await db
       .from("inventory_items")
       .select("id, department, name, quantity, condition, acquisition_date, comments, created_at")
@@ -187,7 +239,8 @@ const getReport = async (req, res) => {
     };
 
     const departmentSummary = departments.map((department) => ({
-      department,
+      department: department.slug,
+      departmentName: department.name,
       total: 0,
       items: 0,
       good: 0,
@@ -276,14 +329,90 @@ const getMedia = async (req, res) => {
   }
 };
 
-const getDepartmentItems = async (req, res) => {
-  const department = req.params.dept;
-  if (!departments.includes(department)) {
-    return res.status(404).json({ error: "Department not found" });
+const listDepartments = async (req, res) => {
+  try {
+    const db = supabase.forRequest(req);
+    const departments = await getDepartments(db);
+    res.json(departments);
+  } catch (error) {
+    handleInventoryError(res, error);
   }
+};
+
+const createDepartment = async (req, res) => {
+  const name = normalizeDepartmentName(req.body.name);
+  const slug = slugifyDepartment(req.body.slug || name);
+
+  if (!name) return res.status(400).json({ error: "Department name is required" });
+  if (!slug) return res.status(400).json({ error: "Department name must include letters or numbers" });
 
   try {
     const db = supabase.forRequest(req);
+    const { data, error } = await db
+      .from("departments")
+      .insert({
+        slug,
+        name,
+        created_by: req.user?.id || null
+      })
+      .select("slug, name")
+      .single();
+
+    if (error?.code === "23505") {
+      return res.status(409).json({ error: "A department with this name already exists" });
+    }
+    if (error && isMissingDepartmentsTableError(error)) {
+      return res.status(500).json({ error: departmentMigrationError });
+    }
+    if (error) throw error;
+
+    res.status(201).json(data);
+  } catch (error) {
+    handleInventoryError(res, error);
+  }
+};
+
+const deleteDepartment = async (req, res) => {
+  const slug = req.params.slug;
+
+  try {
+    const db = supabase.forRequest(req);
+    const exists = await departmentExists(db, slug);
+    if (!exists) return res.status(404).json({ error: "Department not found" });
+
+    const { count, error: countError } = await db
+      .from("inventory_items")
+      .select("id", { count: "exact", head: true })
+      .eq("department", slug);
+
+    if (countError) throw countError;
+    if (count > 0) {
+      return res.status(400).json({
+        error: `Move or delete the ${count} equipment record${count === 1 ? "" : "s"} in this department before deleting it.`
+      });
+    }
+
+    const { error } = await db.from("departments").delete().eq("slug", slug);
+    if (error && isMissingDepartmentsTableError(error)) {
+      return res.status(500).json({ error: departmentMigrationError });
+    }
+    if (error) throw error;
+
+    res.json({ success: true, message: "Department deleted" });
+  } catch (error) {
+    handleInventoryError(res, error);
+  }
+};
+
+const getDepartmentItems = async (req, res) => {
+  const department = req.params.dept;
+
+  try {
+    const db = supabase.forRequest(req);
+    if (!(await departmentExists(db, department))) {
+      return res.status(404).json({ error: "Department not found" });
+    }
+
     const { data, error } = await db
       .from("inventory_items")
       .select("*")
@@ -300,7 +429,6 @@ const getDepartmentItems = async (req, res) => {
 const createItem = async (req, res) => {
   const { department, name, quantity, condition, acquisition_date, comments, image_url, video_url } = req.body;
   const itemQuantity = Number(quantity);
-  if (!departments.includes(department)) return res.status(400).json({ error: "Invalid department" });
   if (!name) return res.status(400).json({ error: "Item name is required" });
   if (!Number.isInteger(itemQuantity) || itemQuantity < 1) return res.status(400).json({ error: "Quantity must be at least 1" });
   if (!conditions.includes(condition)) return res.status(400).json({ error: "Invalid condition" });
@@ -308,6 +436,8 @@ const createItem = async (req, res) => {
 
   try {
     const db = supabase.forRequest(req);
+    if (!(await departmentExists(db, department))) return res.status(400).json({ error: "Invalid department" });
+
     const { data, error } = await db
       .from("inventory_items")
       .insert({
@@ -435,6 +565,9 @@ module.exports = {
   getReport,
   getActivity,
   getMedia,
+  listDepartments,
+  createDepartment,
+  deleteDepartment,
   getDepartmentItems,
   createItem,
   updateItem,

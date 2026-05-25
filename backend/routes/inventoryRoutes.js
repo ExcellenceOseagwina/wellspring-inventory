@@ -5,6 +5,9 @@ const {
   getReport,
   getActivity,
   getMedia,
+  listDepartments,
+  createDepartment,
+  deleteDepartment,
   getDepartmentItems,
   createItem,
   updateItem,
@@ -21,6 +24,9 @@ router.get("/dashboard", authenticate, getDashboard);
 router.get("/report", authenticate, getReport);
 router.get("/activity", authenticate, getActivity);
 router.get("/media", authenticate, getMedia);
+router.get("/departments", authenticate, listDepartments);
+router.post("/departments", authenticate, createDepartment);
+router.delete("/departments/:slug", authenticate, deleteDepartment);
 router.get("/department/:dept", authenticate, getDepartmentItems);
 router.post("/items", authenticate, createItem);
 router.put("/items/:id", authenticate, updateItem);

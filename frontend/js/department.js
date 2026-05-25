@@ -1,6 +1,7 @@
 const API_BASE = "http://localhost:5000/api/inventory";
-const DEPT = document.body.dataset.department;
-const DEPT_NAME = document.body.dataset.departmentName || DEPT;
+const departmentParams = new URLSearchParams(window.location.search);
+const DEPT = document.body.dataset.department || departmentParams.get("dept");
+const DEPT_NAME = document.body.dataset.departmentName || departmentParams.get("name") || DEPT;
 
 const conditionLabels = {
   good: "Good",
@@ -327,6 +328,11 @@ async function uploadToSupabase(file, folder) {
 async function loadItems() {
   const token = localStorage.getItem("token");
   const container = document.getElementById("itemsContainer");
+  if (!DEPT) {
+    container.innerHTML = '<div class="empty-state">No department was selected.</div>';
+    return;
+  }
+
   container.innerHTML = '<div class="notice">Loading equipment...</div>';
 
   try {
@@ -384,6 +390,7 @@ async function deleteItem(id) {
 }
 
 document.getElementById("departmentTitle").textContent = `${DEPT_NAME} Department`;
+document.title = `${DEPT_NAME} Department - Wellspring Inventory`;
 setupDepartmentSearch();
 document.getElementById("itemsContainer").addEventListener("click", (event) => {
   const preview = event.target.closest(".media-preview");
