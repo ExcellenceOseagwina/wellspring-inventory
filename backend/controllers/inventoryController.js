@@ -3,15 +3,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-const defaultDepartments = [
-  { slug: "computing", name: "Computing" },
-  { slug: "nursing", name: "Nursing" },
-  { slug: "accounting", name: "Accounting" },
-  { slug: "public-health", name: "Public Health" },
-  { slug: "mass-communication", name: "Mass Communication" },
-  { slug: "bio-chemistry", name: "Bio Chemistry" },
-  { slug: "biological-science", name: "Biological Science" }
-];
+const defaultDepartments = [];
 
 const conditions = ["good", "outdated", "for_repair", "for_replacement", "missing"];
 const departmentsDataFile = path.join(__dirname, "..", "data", "departments.json");

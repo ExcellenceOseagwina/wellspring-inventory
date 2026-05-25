@@ -5,18 +5,6 @@ create table if not exists departments (
   created_at timestamptz not null default now()
 );
 
-insert into departments (slug, name)
-values
-  ('computing', 'Computing'),
-  ('nursing', 'Nursing'),
-  ('accounting', 'Accounting'),
-  ('public-health', 'Public Health'),
-  ('mass-communication', 'Mass Communication'),
-  ('bio-chemistry', 'Bio Chemistry'),
-  ('biological-science', 'Biological Science')
-on conflict (slug) do update
-set name = excluded.name;
-
 do $$
 declare
   constraint_record record;

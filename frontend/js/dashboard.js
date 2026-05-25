@@ -1,14 +1,6 @@
 const INVENTORY_API = "http://localhost:5000/api/inventory";
 
-let departmentLabels = {
-  "computing": "Computing",
-  "nursing": "Nursing",
-  "accounting": "Accounting",
-  "public-health": "Public Health",
-  "mass-communication": "Mass Communication",
-  "bio-chemistry": "Bio Chemistry",
-  "biological-science": "Biological Science"
-};
+let departmentLabels = {};
 
 const conditionLabels = {
   good: "Good",

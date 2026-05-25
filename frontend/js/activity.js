@@ -8,15 +8,7 @@ const activityConditionLabels = {
   missing: "Missing"
 };
 
-const activityDepartmentLabels = {
-  computing: "Computing",
-  nursing: "Nursing",
-  accounting: "Accounting",
-  "public-health": "Public Health",
-  "mass-communication": "Mass Communication",
-  "bio-chemistry": "Bio Chemistry",
-  "biological-science": "Biological Science"
-};
+const activityDepartmentLabels = {};
 
 const activityActionLabels = {
   added: "Added",

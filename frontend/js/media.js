@@ -8,15 +8,7 @@ const mediaConditionLabels = {
   missing: "Missing"
 };
 
-const mediaDepartmentLabels = {
-  computing: "Computing",
-  nursing: "Nursing",
-  accounting: "Accounting",
-  "public-health": "Public Health",
-  "mass-communication": "Mass Communication",
-  "bio-chemistry": "Bio Chemistry",
-  "biological-science": "Biological Science"
-};
+const mediaDepartmentLabels = {};
 
 function escapeMediaHtml(value = "") {
   return String(value).replace(/[&<>"']/g, (char) => ({
