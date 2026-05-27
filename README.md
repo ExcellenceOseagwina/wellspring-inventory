@@ -153,7 +153,7 @@ Open the frontend by launching `frontend/home.html` in your browser. The fronten
 - Main dashboard with total equipment, number of departments, outdated equipment, equipment for repair, equipment for replacement, missing equipment, and good equipment.
 - Recent activity page showing added, edited, and deleted inventory records.
 - All media page for viewing uploaded equipment images and videos.
-- Department links for Computing, Nursing, Accounting, Public Health, Mass Communication, Bio Chemistry, and Biological Science.
+- Departments can be created.
 - Add equipment per department with item name, quantity, condition, image, video, and comments.
 - Edit and delete equipment records per department.
 - Printable reports include current inventory and recent activity history.
