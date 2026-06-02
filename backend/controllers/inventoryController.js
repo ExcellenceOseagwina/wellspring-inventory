@@ -3,11 +3,20 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-const defaultDepartments = [];
+const defaultDepartments = [
+  { slug: "computing", name: "Computing" },
+  { slug: "nursing", name: "Nursing" },
+  { slug: "accounting", name: "Accounting" },
+  { slug: "public-health", name: "Public Health" },
+  { slug: "mass-communication", name: "Mass Communication" },
+  { slug: "bio-chemistry", name: "Bio Chemistry" },
+  { slug: "biological-science", name: "Biological Science" }
+];
 
 const conditions = ["good", "outdated", "for_repair", "for_replacement", "missing"];
 const departmentsDataFile = path.join(__dirname, "..", "data", "departments.json");
 const localItemsDataFile = path.join(__dirname, "..", "data", "inventory-items.json");
+const canUseLocalJsonFallback = process.env.VERCEL !== "1";
 
 const isMissingDepartmentsTableError = (error) => (
   error?.code === "42P01" ||
@@ -16,6 +25,7 @@ const isMissingDepartmentsTableError = (error) => (
 );
 
 const departmentMigrationError = "The database still has the old fixed department rule. Run backend/sql/add-departments.sql in Supabase SQL editor before adding equipment to newly created departments.";
+const departmentsTableMigrationError = "Custom department management requires the departments table in Supabase. Run backend/sql/add-departments.sql in Supabase SQL editor.";
 
 const normalizeDepartmentName = (value = "") => String(value).trim().replace(/\s+/g, " ");
 
@@ -40,6 +50,8 @@ const dedupeDepartments = (departments = []) => {
 };
 
 const readLocalDepartments = () => {
+  if (!canUseLocalJsonFallback) return defaultDepartments;
+
   try {
     if (!fs.existsSync(departmentsDataFile)) return defaultDepartments;
     const departments = JSON.parse(fs.readFileSync(departmentsDataFile, "utf8"));
@@ -50,6 +62,10 @@ const readLocalDepartments = () => {
 };
 
 const writeLocalDepartments = (departments) => {
+  if (!canUseLocalJsonFallback) {
+    throw new Error(departmentsTableMigrationError);
+  }
+
   fs.mkdirSync(path.dirname(departmentsDataFile), { recursive: true });
   fs.writeFileSync(
     departmentsDataFile,
@@ -58,6 +74,8 @@ const writeLocalDepartments = (departments) => {
 };
 
 const readLocalItems = () => {
+  if (!canUseLocalJsonFallback) return [];
+
   try {
     if (!fs.existsSync(localItemsDataFile)) return [];
     const items = JSON.parse(fs.readFileSync(localItemsDataFile, "utf8"));
@@ -68,6 +86,10 @@ const readLocalItems = () => {
 };
 
 const writeLocalItems = (items) => {
+  if (!canUseLocalJsonFallback) {
+    throw new Error(departmentMigrationError);
+  }
+
   fs.mkdirSync(path.dirname(localItemsDataFile), { recursive: true });
   fs.writeFileSync(localItemsDataFile, `${JSON.stringify(items, null, 2)}\n`);
 };
@@ -106,11 +128,16 @@ const getDepartments = async (db) => {
     .order("name", { ascending: true });
 
   if (error) {
-    if (isMissingDepartmentsTableError(error)) return readLocalDepartments();
+    if (isMissingDepartmentsTableError(error)) {
+      return dedupeDepartments([
+        ...readLocalDepartments(),
+        ...defaultDepartments
+      ]);
+    }
     throw error;
   }
 
-  return normalizeDepartmentRows(data);
+  return dedupeDepartments(normalizeDepartmentRows(data));
 };
 
 const departmentExists = async (db, slug) => {
@@ -441,6 +468,10 @@ const createDepartment = async (req, res) => {
       return res.status(409).json({ error: "A department with this name already exists" });
     }
     if (error && isMissingDepartmentsTableError(error)) {
+      if (!canUseLocalJsonFallback) {
+        throw new Error(departmentsTableMigrationError);
+      }
+
       const departments = readLocalDepartments();
       const exists = departments.some((department) => (
         department.slug === slug ||
@@ -487,6 +518,10 @@ const deleteDepartment = async (req, res) => {
 
     const { error } = await db.from("departments").delete().eq("slug", slug);
     if (error && isMissingDepartmentsTableError(error)) {
+      if (!canUseLocalJsonFallback) {
+        throw new Error(departmentsTableMigrationError);
+      }
+
       writeLocalDepartments(readLocalDepartments().filter((department) => department.slug !== slug));
       return res.json({ success: true, message: "Department deleted" });
     }
@@ -550,6 +585,8 @@ const createItem = async (req, res) => {
       .single();
 
     if (error && isDepartmentConstraintError(error)) {
+      if (!canUseLocalJsonFallback) throw error;
+
       const localItem = createLocalItem(req, {
         department,
         name,
