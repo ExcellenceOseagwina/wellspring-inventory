@@ -620,12 +620,15 @@ const deleteDepartment = async (req, res) => {
       });
     }
 
+    const fallbackDepartments = await readFallbackDepartments();
+    const updatedFallbackDepartments = fallbackDepartments.filter((department) => department.slug !== slug);
+    const shouldUpdateFallback = updatedFallbackDepartments.length !== fallbackDepartments.length;
+
     const { error } = await db.from("departments").delete().eq("slug", slug);
-    if (error && isMissingDepartmentsTableError(error)) {
-      await writeFallbackDepartments((await readFallbackDepartments()).filter((department) => department.slug !== slug));
-      return res.json({ success: true, message: "Department deleted" });
+    if (error && !isMissingDepartmentsTableError(error)) throw error;
+    if (shouldUpdateFallback || isMissingDepartmentsTableError(error)) {
+      await writeFallbackDepartments(updatedFallbackDepartments);
     }
-    if (error) throw error;
 
     res.json({ success: true, message: "Department deleted" });
   } catch (error) {
