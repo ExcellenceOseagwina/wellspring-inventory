@@ -6,6 +6,8 @@ A simple inventory management system for Wellspring University using HTML, CSS, 
 
 ```text
 wellspring-inventory/
+.vercel/
+  project.json
   backend/
     config/
       supabase.js
