@@ -3,20 +3,15 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-const defaultDepartments = [
-  { slug: "computing", name: "Computing" },
-  { slug: "nursing", name: "Nursing" },
-  { slug: "accounting", name: "Accounting" },
-  { slug: "public-health", name: "Public Health" },
-  { slug: "mass-communication", name: "Mass Communication" },
-  { slug: "bio-chemistry", name: "Bio Chemistry" },
-  { slug: "biological-science", name: "Biological Science" }
-];
+const defaultDepartments = [];
 
 const conditions = ["good", "outdated", "for_repair", "for_replacement", "missing"];
 const departmentsDataFile = path.join(__dirname, "..", "data", "departments.json");
 const localItemsDataFile = path.join(__dirname, "..", "data", "inventory-items.json");
 const canUseLocalJsonFallback = process.env.VERCEL !== "1";
+const fallbackStorageBucket = "inventory";
+const fallbackDepartmentsPath = "app-data/departments.json";
+const fallbackItemsPath = "app-data/inventory-items.json";
 
 const isMissingDepartmentsTableError = (error) => (
   error?.code === "42P01" ||
@@ -25,7 +20,7 @@ const isMissingDepartmentsTableError = (error) => (
 );
 
 const departmentMigrationError = "The database still has the old fixed department rule. Run backend/sql/add-departments.sql in Supabase SQL editor before adding equipment to newly created departments.";
-const departmentsTableMigrationError = "Custom department management requires the departments table in Supabase. Run backend/sql/add-departments.sql in Supabase SQL editor.";
+const departmentsTableMigrationError = "Department storage is not available. Confirm the Supabase inventory storage bucket exists, or run backend/sql/add-departments.sql in Supabase SQL editor.";
 
 const normalizeDepartmentName = (value = "") => String(value).trim().replace(/\s+/g, " ");
 
@@ -35,9 +30,15 @@ const slugifyDepartment = (value = "") => normalizeDepartmentName(value)
   .replace(/[^a-z0-9]+/g, "-")
   .replace(/^-+|-+$/g, "");
 
+const labelFromDepartmentSlug = (slug = "") => String(slug)
+  .split("-")
+  .filter(Boolean)
+  .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+  .join(" ");
+
 const normalizeDepartmentRows = (rows = []) => rows.map((department) => ({
   slug: department.slug,
-  name: department.name
+  name: department.name || labelFromDepartmentSlug(department.slug)
 }));
 
 const dedupeDepartments = (departments = []) => {
@@ -94,7 +95,95 @@ const writeLocalItems = (items) => {
   fs.writeFileSync(localItemsDataFile, `${JSON.stringify(items, null, 2)}\n`);
 };
 
-const findLocalItem = (itemId) => readLocalItems().find((item) => String(item.id) === String(itemId));
+const readStorageJson = async (filePath, fallbackValue) => {
+  const { data, error } = await supabase.storage.from(fallbackStorageBucket).download(filePath);
+
+  if (error) {
+    if (
+      error.statusCode === "404" ||
+      error.message?.includes("not found") ||
+      error.message?.includes("The resource was not found")
+    ) {
+      return fallbackValue;
+    }
+    throw error;
+  }
+
+  const text = typeof data?.text === "function"
+    ? await data.text()
+    : Buffer.from(await data.arrayBuffer()).toString("utf8");
+
+  if (!text.trim()) return fallbackValue;
+  return JSON.parse(text);
+};
+
+const isMissingStorageBucketError = (error) => (
+  error?.statusCode === "404" ||
+  error?.message?.toLowerCase().includes("bucket not found") ||
+  error?.message?.toLowerCase().includes("not found")
+);
+
+const ensureFallbackStorageBucket = async () => {
+  const { error } = await supabase.storage.createBucket(fallbackStorageBucket, {
+    public: true
+  });
+
+  if (error && !error.message?.toLowerCase().includes("already exists")) {
+    throw error;
+  }
+};
+
+const writeStorageJson = async (filePath, value) => {
+  const body = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
+  let { error } = await supabase.storage.from(fallbackStorageBucket).upload(filePath, body, {
+    contentType: "application/json",
+    upsert: true
+  });
+
+  if (error && isMissingStorageBucketError(error)) {
+    await ensureFallbackStorageBucket();
+    ({ error } = await supabase.storage.from(fallbackStorageBucket).upload(filePath, body, {
+      contentType: "application/json",
+      upsert: true
+    }));
+  }
+
+  if (error) throw error;
+};
+
+const readFallbackDepartments = async () => {
+  if (canUseLocalJsonFallback) return readLocalDepartments();
+
+  const departments = await readStorageJson(fallbackDepartmentsPath, defaultDepartments);
+  return dedupeDepartments(normalizeDepartmentRows(Array.isArray(departments) ? departments : defaultDepartments));
+};
+
+const writeFallbackDepartments = async (departments) => {
+  if (canUseLocalJsonFallback) {
+    writeLocalDepartments(departments);
+    return;
+  }
+
+  await writeStorageJson(fallbackDepartmentsPath, dedupeDepartments(departments));
+};
+
+const readFallbackItems = async () => {
+  if (canUseLocalJsonFallback) return readLocalItems();
+
+  const items = await readStorageJson(fallbackItemsPath, []);
+  return Array.isArray(items) ? items : [];
+};
+
+const writeFallbackItems = async (items) => {
+  if (canUseLocalJsonFallback) {
+    writeLocalItems(items);
+    return;
+  }
+
+  await writeStorageJson(fallbackItemsPath, items);
+};
+
+const findFallbackItem = async (itemId) => (await readFallbackItems()).find((item) => String(item.id) === String(itemId));
 
 const isNumericItemId = (itemId) => /^\d+$/.test(String(itemId || ""));
 
@@ -129,10 +218,7 @@ const getDepartments = async (db) => {
 
   if (error) {
     if (isMissingDepartmentsTableError(error)) {
-      return dedupeDepartments([
-        ...readLocalDepartments(),
-        ...defaultDepartments
-      ]);
+      return readFallbackDepartments();
     }
     throw error;
   }
@@ -140,8 +226,21 @@ const getDepartments = async (db) => {
   return dedupeDepartments(normalizeDepartmentRows(data));
 };
 
+const departmentsFromItems = (items = []) => dedupeDepartments(items
+  .map((item) => ({
+    slug: item.department,
+    name: labelFromDepartmentSlug(item.department)
+  }))
+);
+
+const getDisplayDepartments = async (db, items = []) => dedupeDepartments([
+  ...await getDepartments(db),
+  ...await readFallbackDepartments(),
+  ...departmentsFromItems(items)
+]);
+
 const departmentExists = async (db, slug) => {
-  const departments = await getDepartments(db);
+  const departments = await getDisplayDepartments(db);
   return departments.some((department) => department.slug === slug);
 };
 
@@ -258,10 +357,10 @@ const logInventoryActivity = async (db, req, action, item) => {
 const getDashboard = async (req, res) => {
   try {
     const db = supabase.forRequest(req);
-    const departments = await getDepartments(db);
     const { data: items, error } = await db.from("inventory_items").select("department, condition, quantity");
     if (error) throw error;
-    const allItems = [...items, ...readLocalItems()];
+    const allItems = [...items, ...(await readFallbackItems())];
+    const departments = await getDisplayDepartments(db, allItems);
 
     const departmentTotals = departments.reduce((totals, department) => {
       totals[department.slug] = 0;
@@ -303,7 +402,6 @@ const getDashboard = async (req, res) => {
 const getReport = async (req, res) => {
   try {
     const db = supabase.forRequest(req);
-    const departments = await getDepartments(db);
     const { data: dbItems, error } = await db
       .from("inventory_items")
       .select("id, department, name, quantity, condition, acquisition_date, comments, created_at")
@@ -311,10 +409,11 @@ const getReport = async (req, res) => {
       .order("name", { ascending: true });
 
     if (error) throw error;
-    const items = [...dbItems, ...readLocalItems()].sort((a, b) => (
+    const items = [...dbItems, ...(await readFallbackItems())].sort((a, b) => (
       String(a.department).localeCompare(String(b.department)) ||
       String(a.name).localeCompare(String(b.name))
     ));
+    const departments = await getDisplayDepartments(db, items);
 
     let activity = [];
     const { data: activityRows, error: activityError } = await db
@@ -396,7 +495,7 @@ const getActivity = async (req, res) => {
       .limit(50);
 
     if (!error) {
-      const localItems = readLocalItems().map((item) => buildActivityRecord("added", item, item.created_at, item.created_by));
+      const localItems = (await readFallbackItems()).map((item) => buildActivityRecord("added", item, item.created_at, item.created_by));
       return res.json([...localItems, ...normalizeActivityRows(data)]);
     }
     if (!isMissingActivityTableError(error)) throw error;
@@ -408,7 +507,7 @@ const getActivity = async (req, res) => {
       .limit(50);
 
     if (itemsError) throw itemsError;
-    const localItems = readLocalItems().map((item) => buildActivityRecord("added", item, item.created_at, item.created_by));
+    const localItems = (await readFallbackItems()).map((item) => buildActivityRecord("added", item, item.created_at, item.created_by));
     res.json([
       ...localItems,
       ...items.map((item) => buildActivityRecord("added", item, item.created_at, item.created_by))
@@ -428,7 +527,7 @@ const getMedia = async (req, res) => {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    const localMediaItems = readLocalItems().filter((item) => item.image_url || item.video_url);
+    const localMediaItems = (await readFallbackItems()).filter((item) => item.image_url || item.video_url);
     res.json([...localMediaItems, ...data]);
   } catch (error) {
     handleInventoryError(res, error);
@@ -438,7 +537,16 @@ const getMedia = async (req, res) => {
 const listDepartments = async (req, res) => {
   try {
     const db = supabase.forRequest(req);
-    const departments = await getDepartments(db);
+    const { data: items, error } = await db
+      .from("inventory_items")
+      .select("department");
+
+    if (error) throw error;
+
+    const departments = await getDisplayDepartments(db, [
+      ...items,
+      ...(await readFallbackItems())
+    ]);
     res.json(departments);
   } catch (error) {
     handleInventoryError(res, error);
@@ -468,11 +576,7 @@ const createDepartment = async (req, res) => {
       return res.status(409).json({ error: "A department with this name already exists" });
     }
     if (error && isMissingDepartmentsTableError(error)) {
-      if (!canUseLocalJsonFallback) {
-        throw new Error(departmentsTableMigrationError);
-      }
-
-      const departments = readLocalDepartments();
+      const departments = await readFallbackDepartments();
       const exists = departments.some((department) => (
         department.slug === slug ||
         department.name.toLowerCase() === name.toLowerCase()
@@ -483,7 +587,7 @@ const createDepartment = async (req, res) => {
       }
 
       const department = { slug, name };
-      writeLocalDepartments([...departments, department]);
+      await writeFallbackDepartments([...departments, department]);
       return res.status(201).json(department);
     }
     if (error) throw error;
@@ -508,7 +612,7 @@ const deleteDepartment = async (req, res) => {
       .eq("department", slug);
 
     if (countError) throw countError;
-    const localCount = readLocalItems().filter((item) => item.department === slug).length;
+    const localCount = (await readFallbackItems()).filter((item) => item.department === slug).length;
     const itemCount = (count || 0) + localCount;
     if (itemCount > 0) {
       return res.status(400).json({
@@ -518,11 +622,7 @@ const deleteDepartment = async (req, res) => {
 
     const { error } = await db.from("departments").delete().eq("slug", slug);
     if (error && isMissingDepartmentsTableError(error)) {
-      if (!canUseLocalJsonFallback) {
-        throw new Error(departmentsTableMigrationError);
-      }
-
-      writeLocalDepartments(readLocalDepartments().filter((department) => department.slug !== slug));
+      await writeFallbackDepartments((await readFallbackDepartments()).filter((department) => department.slug !== slug));
       return res.json({ success: true, message: "Department deleted" });
     }
     if (error) throw error;
@@ -538,10 +638,6 @@ const getDepartmentItems = async (req, res) => {
 
   try {
     const db = supabase.forRequest(req);
-    if (!(await departmentExists(db, department))) {
-      return res.status(404).json({ error: "Department not found" });
-    }
-
     const { data, error } = await db
       .from("inventory_items")
       .select("*")
@@ -549,7 +645,11 @@ const getDepartmentItems = async (req, res) => {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    const localItems = readLocalItems().filter((item) => item.department === department);
+    const localItems = (await readFallbackItems()).filter((item) => item.department === department);
+    if (!data.length && !localItems.length && !(await departmentExists(db, department))) {
+      return res.status(404).json({ error: "Department not found" });
+    }
+
     res.json([...localItems, ...data]);
   } catch (error) {
     handleInventoryError(res, error);
@@ -585,8 +685,6 @@ const createItem = async (req, res) => {
       .single();
 
     if (error && isDepartmentConstraintError(error)) {
-      if (!canUseLocalJsonFallback) throw error;
-
       const localItem = createLocalItem(req, {
         department,
         name,
@@ -597,7 +695,7 @@ const createItem = async (req, res) => {
         image_url,
         video_url
       });
-      writeLocalItems([localItem, ...readLocalItems()]);
+      await writeFallbackItems([localItem, ...(await readFallbackItems())]);
       return res.status(201).json(localItem);
     }
     if (error) throw error;
@@ -619,9 +717,9 @@ const updateItem = async (req, res) => {
   if (!isValidDateValue(acquisition_date)) return res.status(400).json({ error: "Invalid acquisition date" });
 
   try {
-    const localItem = findLocalItem(itemId);
+    const localItem = await findFallbackItem(itemId);
     if (localItem) {
-      const localItems = readLocalItems();
+      const localItems = await readFallbackItems();
       const updatedItem = {
         ...localItem,
         name,
@@ -632,7 +730,7 @@ const updateItem = async (req, res) => {
         image_url,
         video_url
       };
-      writeLocalItems(localItems.map((item) => (
+      await writeFallbackItems(localItems.map((item) => (
         String(item.id) === String(itemId) ? updatedItem : item
       )));
       return res.json(updatedItem);
@@ -685,10 +783,10 @@ const updateItem = async (req, res) => {
 
 const deleteItem = async (req, res) => {
   try {
-    const localItem = findLocalItem(req.params.id);
+    const localItem = await findFallbackItem(req.params.id);
     if (localItem) {
-      const localItems = readLocalItems();
-      writeLocalItems(localItems.filter((item) => String(item.id) !== String(req.params.id)));
+      const localItems = await readFallbackItems();
+      await writeFallbackItems(localItems.filter((item) => String(item.id) !== String(req.params.id)));
       return res.json({ success: true, message: "Item deleted" });
     }
 
