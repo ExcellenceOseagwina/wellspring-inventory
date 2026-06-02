@@ -1,4 +1,4 @@
-const AUTH_API = "http://localhost:5000/api/auth";
+const AUTH_API = `${API_ORIGIN}/api/auth`;
 
 const showAuthMessage = (message, isError = true) => {
   const messageBox = document.getElementById("authMessage");
