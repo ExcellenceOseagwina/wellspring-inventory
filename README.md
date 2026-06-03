@@ -20,7 +20,7 @@ wellspring-inventory/
     .env.example
     package.json
     server.js
-  frontend/
+  frontend/npm
     assets/
     css/
       style.css
