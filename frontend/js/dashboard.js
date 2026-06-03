@@ -1,4 +1,4 @@
-const INVENTORY_API = "/api/inventory";
+const INVENTORY_API = `${API_ORIGIN}/api/inventory`;
 
 let departmentLabels = {};
 

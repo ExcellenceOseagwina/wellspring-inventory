@@ -2,134 +2,114 @@
 
 ## Introduction
 
-The Wellspring University Inventory System is a web-based application for recording, viewing, updating, and monitoring departmental equipment. It helps authorized users manage inventory records for departments such as Computing, Nursing, Accounting, Public Health, Mass Communication, Bio Chemistry, and Biological Science.
-
-This user documentation explains how to access the system, use the dashboard, manage equipment records, generate reports, troubleshoot common issues, and follow basic security practices.
+The Wellspring University Inventory System helps authorized users record, view, update, monitor, and report departmental equipment. Users can create departments, add equipment records, upload item media, search department inventory, review recent activity, and print inventory reports.
 
 ## System Requirements
 
-To use the system successfully, users need:
+Users need:
 
 - A desktop, laptop, tablet, or smartphone.
-- A modern web browser such as Google Chrome, Microsoft Edge, Mozilla Firefox, or Safari.
-- A stable internet connection.
-- A valid user account for the Wellspring University Inventory System.
-- Access to the backend server, normally running at `http://localhost:5000` during local use.
+- A modern browser such as Chrome, Edge, Firefox, or Safari.
+- Internet access for Supabase authentication, database, and storage.
+- A valid user account.
+- Access to the running system, normally `http://localhost:5000` during local use.
 
-For local installation or demonstration, the computer should also have:
+For local demonstration, the computer also needs Node.js, npm, a configured Supabase project, and a public Supabase Storage bucket named `inventory`.
 
-- Node.js installed.
-- npm installed with Node.js.
-- A configured Supabase project.
-- A Supabase storage bucket named `inventory`.
+## Accessing the System
 
-## Installation Guide
+For local use:
 
-Follow these steps to set up the system locally:
+1. Start the backend server.
+2. Open `http://localhost:5000` in a browser.
+3. Use the navigation links to sign up or log in.
 
-1. Open the project folder on the computer.
-2. Open a terminal or command prompt.
-3. Move into the backend folder:
+If the frontend is opened directly from the `frontend/` folder, the pages still expect the backend API to be running at `http://localhost:5000`.
 
-   ```bash
-   cd backend
-   ```
+## Account Management
 
-4. Install the backend dependencies:
-
-   ```bash
-   npm install
-   ```
-
-5. Create a `.env` file inside the `backend` folder.
-6. Add the required Supabase settings:
-
-   ```env
-   PORT=5000
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   ```
-
-7. In Supabase, create the required `inventory_items` table.
-8. In Supabase Storage, create a public bucket named `inventory`.
-9. Start the backend server:
-
-   ```bash
-   npm start
-   ```
-
-10. Open `frontend/home.html` in a web browser.
-
-## User Login Procedure
-
-To log in:
-
-1. Open the system in a web browser.
-2. Click the login option or open the login page.
-3. Enter your registered email address.
-4. Enter your password.
-5. Click the login button.
-6. If the details are correct, the system opens the dashboard.
-
-To create a new account:
+### Create an Account
 
 1. Open the signup page.
 2. Enter your full name, email address, and password.
 3. Submit the form.
-4. Confirm your email address if Supabase email confirmation is enabled.
+4. Confirm your email address if email confirmation is enabled.
 5. Return to the login page and sign in.
 
-To reset a forgotten password:
+### Log In
+
+1. Open the login page.
+2. Enter your email address and password.
+3. Submit the form.
+4. After successful login, the dashboard opens.
+
+### Reset a Forgotten Password
 
 1. Open the forgot password page.
 2. Enter your registered email address.
 3. Submit the form.
-4. Check your email for the password reset link.
-5. Open the link and enter a new password.
-6. Return to the login page and sign in with the new password.
+4. Open the password reset link sent to your email.
+5. Enter and confirm the new password.
+6. Return to the login page and sign in.
 
-## Dashboard Overview
+### Sign Out
 
-The dashboard is the main page users see after logging in. It provides a summary of the university inventory records.
+1. Select Sign out from the navigation area.
+2. Confirm the action.
+3. The system clears the saved session and returns to the login page.
 
-The dashboard displays:
+## Dashboard
 
-- Total Equipment: the total quantity of equipment recorded.
-- Departments: the number of departments available in the system.
-- Good: equipment marked as being in good condition.
-- Outdated: equipment marked as outdated.
-- For Repair: equipment that needs repair.
-- For Replacement: equipment that needs replacement.
-- Missing: equipment marked as missing.
+The dashboard is the main working area after login. It displays:
 
-The dashboard also provides links to each department inventory page and includes a Generate Report button for creating a printable inventory report.
+- Total Equipment
+- Departments
+- Good
+- Outdated
+- For Repair
+- For Replacement
+- Missing
 
-## Features and Functions
+Dashboard totals are based on equipment quantity, not only the number of records. The department cards show each department and its item quantity total.
 
-The system includes the following major features:
+## Department Management
 
-- User account signup and login.
-- Password reset through email.
-- Protected dashboard access for logged-in users.
-- Department-based inventory pages.
-- Add, edit, and delete equipment records.
-- Record equipment name, quantity, condition, acquisition date, and comments.
-- Upload equipment images and videos.
-- Preview uploaded images and videos.
-- Search department records by name, condition, acquisition date, quantity, or comments.
-- View recent inventory activity.
-- Generate and print inventory reports.
-- Sign out securely after use.
+### Add a Department
 
-Supported departments:
+1. Open the dashboard.
+2. Select Add Department.
+3. Enter the department name.
+4. Save the department.
 
-- Computing
-- Nursing
-- Accounting
-- Public Health
-- Mass Communication
-- Bio Chemistry
-- Biological Science
+The system creates a URL-friendly department slug automatically. For example, `Computer Science` becomes `computer-science`.
+
+### Open a Department
+
+1. Open the dashboard.
+2. Select the department card.
+3. The department inventory page opens with that department's records.
+
+### Delete a Department
+
+1. Open the dashboard.
+2. Select Delete on the department card.
+3. Confirm the action.
+
+A department can only be deleted when it has no equipment records. Move or delete the department's equipment first.
+
+## Equipment Management
+
+### Add Equipment
+
+1. Open the correct department page.
+2. Select Add Equipment.
+3. Enter the equipment name.
+4. Enter the quantity.
+5. Select the condition.
+6. Enter the acquisition date if available.
+7. Add comments where necessary.
+8. Upload an image or video if available.
+9. Save the equipment record.
 
 Supported equipment conditions:
 
@@ -139,153 +119,117 @@ Supported equipment conditions:
 - For Replacement
 - Missing
 
-## User Roles and Permissions
-
-The current version uses authenticated access. This means users must be logged in before they can use protected inventory pages.
-
-Authenticated users can:
-
-- View the dashboard.
-- View department inventory records.
-- Add new equipment records.
-- Edit existing equipment records.
-- Delete equipment records.
-- Upload images and videos.
-- Generate inventory reports.
-- View recent activity.
-
-Separate roles such as administrator, staff, and viewer are not currently enforced in the application. Users should therefore follow the university's internal rules about who is allowed to add, update, or delete inventory records.
-
-## How to Perform Common Tasks
-
-### Add Equipment
-
-1. Log in to the system.
-2. Open the dashboard.
-3. Select the correct department.
-4. Click the option to add new equipment.
-5. Enter the equipment name.
-6. Enter the quantity.
-7. Select the equipment condition.
-8. Enter the acquisition date if available.
-9. Add comments where necessary.
-10. Upload an image or video if available.
-11. Save the equipment record.
-
 ### Edit Equipment
 
 1. Open the department page containing the equipment.
-2. Find the equipment record.
-3. Click Edit.
+2. Find the equipment card.
+3. Select Edit.
 4. Update the required details.
 5. Save the changes.
 
 ### Delete Equipment
 
 1. Open the department page containing the equipment.
-2. Find the equipment record.
-3. Click Delete.
-4. Confirm the deletion.
+2. Find the equipment card.
+3. Select Delete.
+4. Confirm the action.
 
-Only delete a record when you are sure it is no longer needed, because deletion removes the record from the department list.
+Deleted equipment is removed from the department list. The recent activity history keeps a snapshot of deleted item details when the activity table is configured.
 
-### Search for Equipment
+### Search Equipment
 
-1. Open the required department page.
-2. Use the search box above the equipment list.
-3. Type the equipment name, condition, date, quantity, or comment keyword.
-4. Review the filtered results.
-5. Click Clear to remove the search filter.
+1. Open a department page.
+2. Use the Search added items field.
+3. Search by equipment name, quantity, condition, acquisition date, or comments.
+4. Select Clear to remove the search filter.
 
-### View Recent Activity
+## Media Gallery
 
-1. Log in to the system.
-2. Open the dashboard.
-3. Click Recent Activity.
-4. Review the latest inventory records added to the system.
+The All Media page displays uploaded item images and videos across departments.
 
-### Generate and Print a Report
+To view media:
 
-1. Log in to the system.
-2. Open the dashboard.
-3. Click Generate Report.
-4. Review the report summary and item details.
-5. Click Print Report to print or save the report as a PDF.
+1. Log in.
+2. Open All Media.
+3. Select an image or video preview.
+4. Use the viewer modal to inspect the file.
 
-### Sign Out
+Media files are stored in the Supabase `inventory` bucket.
 
-1. Click Sign out from the dashboard or navigation area.
-2. Confirm the sign-out action.
-3. The system returns you to the login page.
+## Recent Activity
 
-## Troubleshooting Guide
+The Recent Activity page shows equipment actions such as:
+
+- Added
+- Edited
+- Deleted
+
+Each activity entry includes the department, equipment name, quantity, condition, acquisition date, comments, and time. If the permanent activity table has not been created yet, the system falls back to showing recently added inventory records.
+
+## Reports
+
+The dashboard includes a Generate Report button. Reports include:
+
+- Generated date and time
+- Prepared-by user name
+- Overall summary totals
+- Department summary totals
+- Full equipment list
+- Recent activity list
+
+To print or save a report:
+
+1. Open the dashboard.
+2. Select Generate Report.
+3. Review the report.
+4. Select Print Report.
+5. Choose a printer or save as PDF from the browser print dialog.
+
+## User Permissions
+
+The current version uses authenticated access. Any logged-in user can:
+
+- View the dashboard.
+- Create and delete empty departments.
+- View department inventory.
+- Add, edit, and delete equipment.
+- Upload media.
+- View all media.
+- View recent activity.
+- Generate and print reports.
+
+Separate administrator, staff, and viewer roles are not currently enforced. Users should follow the university's internal rules about who may change inventory records.
+
+## Troubleshooting
 
 | Problem | Possible Cause | Solution |
 | --- | --- | --- |
-| The system shows a network error | Backend server is not running | Start the backend with `npm start` inside the `backend` folder |
-| Login fails | Email or password is incorrect | Check the login details and try again |
-| Login fails after signup | Email confirmation may be required | Check your email and confirm the account |
-| Dashboard does not load | Session expired or token is missing | Sign out and log in again |
-| Equipment records do not appear | Backend or Supabase connection issue | Confirm the backend is running and Supabase settings are correct |
-| File upload fails | Supabase storage bucket is missing | Create a public bucket named `inventory` |
-| Missing condition cannot be saved | Database condition constraint is outdated | Run `backend/sql/allow-missing-condition.sql` in Supabase |
-| Acquisition date cannot be saved | Database column is missing | Run `backend/sql/add-acquisition-date.sql` in Supabase |
-| Report does not generate | Backend cannot fetch report data | Check server status and log in again |
-| Search returns no result | Search term does not match existing records | Clear the search field and try another keyword |
-
-## Frequently Asked Questions (FAQ)
-
-**Do I need an account to use the system?**  
-Yes. You must log in before accessing the dashboard and inventory records.
-
-**Can I manage records for all departments?**  
-Yes. In the current version, any authenticated user can access all department pages.
-
-**Can I upload both images and videos?**  
-Yes. Equipment records can include uploaded images and videos.
-
-**Where are uploaded files stored?**  
-Uploaded media files are stored in the Supabase `inventory` storage bucket.
-
-**Can I print an inventory report?**  
-Yes. Use the Generate Report button on the dashboard, then click Print Report.
-
-**Can deleted records be restored?**  
-The system does not currently provide a restore option. Delete records carefully.
-
-**Why am I redirected to the login page?**  
-You may not be logged in, or your session may have expired. Log in again to continue.
-
-**Can the system work without internet?**  
-No. The system requires Supabase services for authentication, database records, and file storage.
+| Network error | Backend is not running | Start the server with `npm start` |
+| Login fails | Incorrect credentials or unconfirmed email | Check details and confirm the email account |
+| Dashboard redirects to login | Session is missing or expired | Log in again |
+| Dashboard does not load | Backend or Supabase connection issue | Confirm server and environment variables |
+| Department cannot be added | Department already exists or migration is missing | Use a different name or run `backend/sql/add-departments.sql` |
+| Department cannot be deleted | Department still has equipment records | Delete or move those records first |
+| Equipment cannot be saved | Missing field, invalid quantity, invalid condition, or missing department | Check all form fields |
+| Upload fails | Storage bucket is missing | Create a public Supabase bucket named `inventory` |
+| Missing condition cannot be saved | Old database condition constraint | Run `backend/sql/allow-missing-condition.sql` |
+| Acquisition date cannot be saved | Missing database column | Run `backend/sql/add-acquisition-date.sql` |
+| Recent activity is incomplete | Activity table is missing | Run `backend/sql/add-inventory-activity.sql` |
+| Report does not print cleanly | Browser print settings | Use the browser's print preview and select Save as PDF if needed |
 
 ## Security and Safety Tips
 
-- Use a strong password that is difficult to guess.
-- Do not share your login details with another person.
-- Sign out after using the system, especially on a shared computer.
-- Confirm equipment details before saving records.
-- Delete records only when authorized to do so.
-- Avoid uploading unrelated images or videos.
-- Report suspicious account activity to the system administrator.
-- Keep the Supabase service role key private and never place it in frontend files.
-- Use trusted computers and secure internet connections when managing inventory records.
+- Use a strong password.
+- Do not share login details.
+- Sign out after using a shared computer.
+- Confirm equipment details before saving.
+- Delete records only when authorized.
+- Upload only relevant equipment images or videos.
+- Report suspicious account activity to the administrator.
+- Never place Supabase service role keys in frontend files.
 
-## Contact and Support Information
+## Support Information
 
-For help with the Wellspring University Inventory System, contact the project developer or the department responsible for maintaining the system.
+For help, contact the project developer, project supervisor, or the person responsible for maintaining the Supabase project and backend server.
 
-Suggested support details:
-
-- System name: Wellspring University Inventory System
-- Developer: Excellence Oseagwina
-- Support channel: Department or project supervisor
-- Technical support: Backend/server administrator or Supabase project administrator
-
-When reporting an issue, include:
-
-- The page where the issue occurred.
-- The action you were trying to perform.
-- The error message displayed, if any.
-- The date and time the issue happened.
-- A screenshot, if available.
+When reporting an issue, include the page, action attempted, error message, date and time, and a screenshot if available.

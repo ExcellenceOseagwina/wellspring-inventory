@@ -1,4 +1,4 @@
-const ACTIVITY_API = "/api/inventory";
+const ACTIVITY_API = `${API_ORIGIN}/api/inventory`;
 
 const activityConditionLabels = {
   good: "Good",

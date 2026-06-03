@@ -4,132 +4,75 @@
 
 ### 1.1 Purpose
 
-The purpose of the Wellspring University Inventory System is to provide a simple web-based platform for recording, viewing, updating, and managing departmental equipment. The system helps the university keep track of equipment quantity, condition, acquisition date, comments, images, and videos.
+The Wellspring University Inventory System provides a web-based platform for managing university equipment by department. It records item quantity, condition, acquisition date, comments, images, videos, and activity history.
 
 ### 1.2 Scope
 
-This documentation covers the frontend, backend API, authentication flow, Supabase database, storage integration, installation steps, configuration, testing approach, deployment process, and maintenance information for the system.
+This document describes the system architecture, installation, configuration, frontend workflow, backend API, Supabase database schema, storage usage, testing approach, deployment notes, and maintenance guidance.
 
 ### 1.3 Audience
 
-This document is intended for:
-
 - Project supervisors and examiners
-- Developers maintaining the system
-- System administrators deploying the system
-- Departmental users who need to understand the system workflow
+- Developers maintaining the application
+- System administrators deploying the application
+- Departmental users who need workflow context
 
 ## 2. System Overview
 
-The Wellspring University Inventory System is made up of a static web frontend and a Node.js backend API. Users sign up or log in, then manage inventory items by department. Inventory records are stored in Supabase, while uploaded images and videos are stored in a Supabase Storage bucket.
-
-### 2.1 Architecture
+The system is made up of a static HTML/CSS/JavaScript frontend and a Node.js/Express backend. Supabase provides authentication, database storage, and file storage.
 
 ```text
-User Browser
+Browser
   |
-  | HTML, CSS, JavaScript
+  | Static frontend and fetch requests
   v
-Frontend Pages
-  |
-  | HTTP requests with Bearer token
-  v
-Node.js / Express API
+Express backend
   |
   | Supabase client
   v
-Supabase Auth, Database, and Storage
+Supabase Auth, Postgres, and Storage
 ```
 
-Main folders:
+### 2.1 Main Components
 
-- `frontend/`: Contains HTML pages, CSS, JavaScript, images, and icons.
-- `backend/`: Contains the Express server, routes, controllers, middleware, Supabase configuration, and SQL helper scripts.
+- `frontend/`: User-facing pages, styles, scripts, and assets.
+- `backend/server.js`: Express app, health check, API mounting, and static frontend serving.
+- `backend/routes/`: Auth and inventory route definitions.
+- `backend/controllers/`: Request handling and business logic.
+- `backend/middleware/auth.js`: Supabase token validation.
+- `backend/config/supabase.js`: Supabase client and per-request client helper.
+- `backend/utils/upload.js`: Multer upload configuration.
+- `backend/sql/`: Database migration helper scripts.
+- `backend/data/`: Local JSON fallback storage used outside Vercel when department migrations are missing.
 
-### 2.2 Technologies Used
+### 2.2 Technologies
 
-- HTML5 for page structure
-- CSS3 for styling
-- JavaScript for frontend logic
-- Node.js for backend runtime
-- Express.js for API routing
-- Supabase Auth for user authentication
-- Supabase Database for inventory records
-- Supabase Storage for uploaded media
-- Multer for handling file uploads
-- dotenv for environment variables
-- CORS for allowing frontend-backend communication
+- HTML5
+- CSS3
+- JavaScript
+- Node.js
+- Express.js
+- Supabase Auth
+- Supabase Postgres
+- Supabase Storage
+- Multer
+- dotenv
+- CORS
+- Vercel routing
 
-### 2.3 Dependencies
-
-Backend dependencies:
-
-- `@supabase/supabase-js`
-- `bcryptjs`
-- `cors`
-- `dotenv`
-- `express`
-- `jsonwebtoken`
-- `multer`
-
-Development dependency:
-
-- `nodemon`
-
-## 3. Installation Guide
+## 3. Installation and Configuration
 
 ### 3.1 Prerequisites
 
-Before installing the system, ensure the following are available:
+- Node.js and npm
+- Supabase project
+- Modern web browser
+- Internet connection
+- Public Supabase Storage bucket named `inventory`
 
-- Node.js installed on the computer
-- npm installed with Node.js
-- A Supabase project
-- A modern web browser
-- Internet connection for Supabase services
+### 3.2 Environment Variables
 
-### 3.2 System Requirements
-
-Minimum requirements:
-
-- Operating system: Windows, Linux, or macOS
-- RAM: 4 GB or higher
-- Browser: Chrome, Edge, Firefox, or any modern browser
-- Backend port: `5000`
-- Supabase storage bucket named `inventory`
-
-### 3.3 Installation Steps
-
-1. Open the project folder.
-2. Move into the backend folder:
-
-   ```bash
-   cd backend
-   ```
-
-3. Install backend dependencies:
-
-   ```bash
-   npm install
-   ```
-
-4. Create a `.env` file inside the `backend/` folder.
-5. Add Supabase environment variables to `.env`.
-6. Create the required `inventory_items` table in Supabase.
-7. Create a public Supabase storage bucket named `inventory`.
-8. Start the backend server:
-
-   ```bash
-   npm start
-   ```
-
-9. Open `frontend/home.html` in a browser.
-
-## 4. Configuration Guide
-
-### 4.1 Configuration Parameters
-
-The backend uses the following environment variables:
+Create `backend/.env`:
 
 ```env
 PORT=5000
@@ -137,155 +80,94 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-Optional fallback key:
+`SUPABASE_ANON_KEY` may be used as a fallback, but `SUPABASE_SERVICE_ROLE_KEY` is the intended backend key for this project. It must not be exposed in frontend files.
 
-```env
-SUPABASE_ANON_KEY=your-anon-key
+### 3.3 Local Startup
+
+From the root:
+
+```bash
+npm install
+npm start
 ```
 
-### 4.2 Environment Setup
+From the backend folder:
 
-The `.env` file must be placed inside the `backend/` folder. The service role key should not be exposed in frontend files because it gives privileged access to Supabase resources.
-
-The frontend expects the API to run at:
-
-```text
-http://localhost:5000
+```bash
+cd backend
+npm install
+npm start
 ```
 
-### 4.3 External Services Integration
+Open `http://localhost:5000`. The backend serves `frontend/home.html` at `/`.
 
-The system integrates with Supabase for:
+## 4. Frontend Design
 
-- User registration and login
-- Password reset
-- Inventory database storage
-- Image and video file storage
+### 4.1 Pages
 
-Supabase setup requires:
+- `frontend/home.html`: Landing/home page.
+- `frontend/about.html`: Project information.
+- `frontend/pages/signup.html`: Account creation.
+- `frontend/pages/login.html`: Sign in.
+- `frontend/pages/forgot-password.html`: Password reset request.
+- `frontend/pages/reset-password.html`: New password submission.
+- `frontend/pages/dashboard.html`: Main dashboard, department management, and report.
+- `frontend/pages/departments/department.html`: Dynamic department inventory page.
+- `frontend/pages/recent-activity.html`: Recent inventory activity.
+- `frontend/pages/all-media.html`: Uploaded media gallery.
 
-- A project URL
-- A service role key or anon key
-- An `inventory_items` table
-- An `inventory` storage bucket
+### 4.2 Frontend Scripts
 
-## 5. Usage Guide
+- `api-base.js`: Chooses the API origin. File-based or non-5000 local pages call `http://localhost:5000`; same-origin deployments call `""`.
+- `auth.js`: Signup, login, password reset, logout, password visibility toggles, session handling.
+- `dashboard.js`: Dashboard totals, department creation/deletion, report generation, print handling, cross-tab refresh.
+- `department.js`: Department item loading, add/edit/delete, uploads, search, media viewer.
+- `activity.js`: Recent activity rendering.
+- `media.js`: All-media gallery rendering.
 
-### 5.1 User Interface Overview
+### 4.3 Authentication Flow
 
-The frontend includes:
+1. User signs up or logs in through the frontend.
+2. Backend calls Supabase Auth.
+3. Frontend stores the Supabase access token and user object in `localStorage`.
+4. Protected frontend pages check for a token.
+5. Protected API requests send `Authorization: Bearer <token>`.
+6. `backend/middleware/auth.js` validates the token with Supabase Auth.
 
-- Home page
-- About page
-- Signup page
-- Login page
-- Forgot password page
-- Reset password page
-- Dashboard page
-- Recent activity page
-- Department inventory pages
+## 5. Backend API
 
-Department pages include:
-
-- Computing
-- Nursing
-- Accounting
-- Public Health
-- Mass Communication
-- Bio Chemistry
-- Biological Science
-
-### 5.2 User Authentication
-
-Users must create an account or log in before accessing protected inventory pages. After login, the access token is stored in browser local storage and sent to the backend as a bearer token.
-
-Authentication features:
-
-- Signup
-- Login
-- Forgot password
-- Reset password
-- Logout
-
-### 5.3 Core Functionality
-
-Core system functions include:
-
-- Add new equipment records
-- View equipment by department
-- Edit equipment records
-- Delete equipment records
-- Upload equipment images
-- Upload equipment videos
-- Search department items
-- View dashboard totals
-- Generate inventory report
-- View recent activity
-
-Inventory item fields:
-
-- Department
-- Name
-- Quantity
-- Condition
-- Acquisition date
-- Comments
-- Image URL
-- Video URL
-- Created by
-- Created at
-
-### 5.4 Advanced Features
-
-Advanced features include:
-
-- Dashboard summary by condition
-- Printable inventory report
-- Recent activity display
-- Media preview for images and videos
-- Search by item name, condition, date, quantity, or comments
-- Supabase token validation on protected API routes
-
-### 5.5 Troubleshooting
-
-Common issues:
-
-- If the frontend shows a network error, confirm the backend server is running.
-- If login fails, confirm the email and password are correct.
-- If uploads fail, confirm the Supabase `inventory` storage bucket exists.
-- If missing items cannot be saved, run `backend/sql/allow-missing-condition.sql` in Supabase.
-- If acquisition date errors occur, run `backend/sql/add-acquisition-date.sql` in Supabase.
-
-## 6. API Documentation
-
-### 6.1 Endpoints
-
-Authentication endpoints:
+### 5.1 Public Endpoints
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| POST | `/api/auth/signup` | Creates a new user account |
-| POST | `/api/auth/login` | Logs in a user |
-| POST | `/api/auth/forgot-password` | Sends password reset email |
-| POST | `/api/auth/reset-password` | Updates user password |
+| GET | `/api` | API welcome message |
+| GET | `/api/health` | Returns `{ "status": "ok" }` |
+| GET | `/api/inventory` | Inventory API endpoint list |
+| POST | `/api/auth/signup` | Creates a Supabase Auth user |
+| POST | `/api/auth/login` | Signs in a user |
+| POST | `/api/auth/forgot-password` | Sends a password reset email |
+| POST | `/api/auth/reset-password` | Updates password from reset token |
 
-Inventory endpoints:
+### 5.2 Protected Inventory Endpoints
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| GET | `/api/inventory` | Returns API information |
-| GET | `/api/inventory/dashboard` | Returns dashboard statistics |
-| GET | `/api/inventory/report` | Returns full report data |
-| GET | `/api/inventory/activity` | Returns recent inventory activity |
-| GET | `/api/inventory/department/:dept` | Returns department items |
-| POST | `/api/inventory/items` | Creates inventory item |
-| PUT | `/api/inventory/items/:id` | Updates inventory item |
-| DELETE | `/api/inventory/items/:id` | Deletes inventory item |
-| POST | `/api/inventory/upload` | Uploads image or video file |
+| GET | `/api/inventory/dashboard` | Returns quantity totals, condition totals, and department list |
+| GET | `/api/inventory/report` | Returns printable report data |
+| GET | `/api/inventory/activity` | Returns recent add/edit/delete activity |
+| GET | `/api/inventory/media` | Returns items with image or video URLs |
+| GET | `/api/inventory/departments` | Lists departments |
+| POST | `/api/inventory/departments` | Creates a department |
+| DELETE | `/api/inventory/departments/:slug` | Deletes an empty department |
+| GET | `/api/inventory/department/:dept` | Lists equipment for one department |
+| POST | `/api/inventory/items` | Creates equipment |
+| PUT | `/api/inventory/items/:id` | Updates equipment |
+| DELETE | `/api/inventory/items/:id` | Deletes equipment |
+| POST | `/api/inventory/upload` | Uploads one media file |
 
-### 6.2 Request and Response Formats
+### 5.3 Example Requests
 
-Signup request:
+Signup:
 
 ```json
 {
@@ -295,25 +177,24 @@ Signup request:
 }
 ```
 
-Login request:
+Create department:
 
 ```json
 {
-  "email": "user@example.com",
-  "password": "password123"
+  "name": "Computer Science"
 }
 ```
 
-Create item request:
+Create item:
 
 ```json
 {
-  "department": "computing",
+  "department": "computer-science",
   "name": "Laptop",
   "quantity": 2,
   "condition": "good",
   "acquisition_date": "2026-05-18",
-  "comments": "Used in computer laboratory",
+  "comments": "Used in laboratory",
   "image_url": "https://example.com/image.jpg",
   "video_url": null
 }
@@ -324,7 +205,13 @@ Dashboard response:
 ```json
 {
   "total": 20,
-  "departments": 7,
+  "departments": 3,
+  "departmentList": [
+    { "slug": "computer-science", "name": "Computer Science" }
+  ],
+  "departmentTotals": {
+    "computer-science": 8
+  },
   "good": 10,
   "outdated": 3,
   "repair": 2,
@@ -341,58 +228,29 @@ Error response:
 }
 ```
 
-### 6.3 Authentication and Authorization
+## 6. Database Schema
 
-Protected inventory routes require an authorization header:
+### 6.1 `inventory_items`
 
-```text
-Authorization: Bearer user-access-token
+```sql
+create table if not exists inventory_items (
+  id uuid primary key default gen_random_uuid(),
+  department text not null,
+  name text not null,
+  quantity integer not null default 1 check (quantity >= 1),
+  condition text not null check (
+    condition in ('good', 'outdated', 'for_repair', 'for_replacement', 'missing')
+  ),
+  acquisition_date date,
+  image_url text,
+  video_url text,
+  comments text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz not null default now()
+);
 ```
 
-The backend validates the token using Supabase Auth. If the token is missing, invalid, or expired, the API returns a `401` response.
-
-## 7. Database Schema
-
-### 7.1 Entity-Relationship Diagram
-
-```text
-auth.users
-  1
-  |
-  | created_by
-  v
-inventory_items
-```
-
-### 7.2 Table Definitions
-
-Table: `inventory_items`
-
-| Column | Type | Description |
-| --- | --- | --- |
-| `id` | uuid | Primary key |
-| `department` | text | Department that owns the equipment |
-| `name` | text | Equipment name |
-| `quantity` | integer | Number of equipment units |
-| `condition` | text | Current equipment condition |
-| `acquisition_date` | date | Date equipment was acquired |
-| `image_url` | text | Public image URL |
-| `video_url` | text | Public video URL |
-| `comments` | text | Additional notes |
-| `created_by` | uuid | User who created the record |
-| `created_at` | timestamptz | Record creation date and time |
-
-Valid departments:
-
-- `computing`
-- `nursing`
-- `accounting`
-- `public-health`
-- `mass-communication`
-- `bio-chemistry`
-- `biological-science`
-
-Valid conditions:
+Valid condition values:
 
 - `good`
 - `outdated`
@@ -400,143 +258,162 @@ Valid conditions:
 - `for_replacement`
 - `missing`
 
-### 7.3 Relationships and Constraints
+### 6.2 `departments`
 
-Relationships:
+Created by `backend/sql/add-departments.sql`:
 
-- `inventory_items.created_by` references `auth.users.id`.
+```sql
+create table if not exists departments (
+  slug text primary key,
+  name text not null unique,
+  created_by uuid references auth.users(id),
+  created_at timestamptz not null default now()
+);
+```
 
-Constraints:
+The same migration drops older fixed department check constraints from `inventory_items`, allowing users to create departments dynamically.
 
-- `id` is the primary key.
-- `department` must be one of the supported departments.
-- `condition` must be one of the supported condition values.
-- `quantity` must be at least `1`.
-- `created_at` defaults to the current timestamp.
+### 6.3 `inventory_activity`
 
-## 8. Testing
+Created by `backend/sql/add-inventory-activity.sql`:
 
-### 8.1 Test Plan
+```sql
+create table if not exists inventory_activity (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid,
+  action text not null check (action in ('added', 'edited', 'deleted')),
+  snapshot jsonb not null,
+  created_by uuid references auth.users(id),
+  created_at timestamptz not null default now()
+);
+```
 
-Testing should confirm that:
+Activity stores a JSON snapshot so deleted item details remain visible in recent activity and reports.
 
-- Users can sign up and log in.
-- Protected pages redirect unauthenticated users.
-- Dashboard statistics load correctly.
-- Inventory records can be created, viewed, updated, and deleted.
+### 6.4 Storage
+
+Supabase Storage bucket:
+
+```text
+inventory
+```
+
+Typical object paths:
+
+- `images/<timestamp>-<filename>`
+- `videos/<timestamp>-<filename>`
+- `app-data/departments.json`
+- `app-data/inventory-items.json`
+
+The `app-data` paths are fallback storage paths used in hosted environments when the department migration is missing. Running all SQL migrations is the preferred setup.
+
+## 7. Business Rules
+
+- Users must be authenticated to access inventory endpoints.
+- Department names are normalized and converted to slugs.
+- Department names must be unique.
+- Departments with equipment records cannot be deleted.
+- Equipment quantity must be an integer greater than or equal to `1`.
+- Equipment condition must match one of the supported condition values.
+- Acquisition date is optional, but if supplied it must be a valid date.
+- Uploaded files are stored in the public `inventory` bucket.
+- Dashboard and reports count equipment quantities, not just row counts.
+
+## 8. Fallback Behavior
+
+The backend supports fallback storage for departments and items when older Supabase schemas are missing the dynamic departments migration.
+
+- Outside Vercel, fallback data is read from `backend/data/departments.json` and `backend/data/inventory-items.json`.
+- On Vercel, fallback data is stored as JSON files in the Supabase `inventory` bucket.
+- This fallback is intended to keep demonstrations working. Production systems should run `backend/sql/add-departments.sql`.
+
+## 9. Testing
+
+### 9.1 Manual Test Plan
+
+Test the following workflows:
+
+- Signup and login.
+- Forgot password and reset password.
+- Unauthenticated users are redirected or rejected.
+- Dashboard totals load.
+- Department creation works.
+- Duplicate departments are rejected.
+- Empty departments can be deleted.
+- Departments with equipment cannot be deleted.
+- Equipment can be added, edited, searched, and deleted.
 - Image and video upload works.
-- Reports and recent activity display correct data.
-- Invalid inputs produce clear error messages.
+- Recent activity records added, edited, and deleted actions.
+- All Media displays uploaded files.
+- Report generation and printing works.
 
-### 8.2 Test Cases
+### 9.2 Current Test Automation
 
-| Test Case | Steps | Expected Result |
-| --- | --- | --- |
-| User signup | Enter full name, email, and password | Account is created |
-| User login | Enter valid email and password | User is redirected to dashboard |
-| Invalid login | Enter wrong credentials | Error message is displayed |
-| Add equipment | Complete equipment form and submit | New item appears in department list |
-| Edit equipment | Update an existing item | Item details are changed |
-| Delete equipment | Delete an item and confirm action | Item is removed |
-| Upload media | Select image or video file | File is uploaded and preview is shown |
-| Generate report | Click generate report button | Report data is displayed |
-| View activity | Open recent activity page | Latest inventory items are shown |
+No automated test suite is currently configured. The backend package includes the default placeholder `npm test` script, which exits with an error.
 
-### 8.3 Test Results
+## 10. Deployment
 
-The system should be considered successful when all major user workflows complete without errors and the stored Supabase data matches the actions performed in the frontend.
+### 10.1 Vercel
 
-## 9. Deployment
+`vercel.json` configures:
 
-### 9.1 Deployment Process
+- `/api/(.*)` to `backend/server.js`
+- `/assets/(.*)` to `frontend/assets`
+- `/css/(.*)` to `frontend/css`
+- `/js/(.*)` to `frontend/js`
+- `/pages/(.*)` to `frontend/pages`
+- `/about.html` and `/home.html` static routes
+- `/` to `frontend/home.html`
 
-Basic deployment steps:
+### 10.2 Deployment Checklist
 
-1. Prepare the Supabase project and database.
-2. Upload or deploy the backend to a Node.js hosting platform.
-3. Set production environment variables.
-4. Deploy the frontend files to a static hosting platform.
-5. Update frontend API URLs if the backend is no longer running on `localhost:5000`.
-6. Test authentication, inventory actions, and uploads in production.
+1. Create or confirm the Supabase project.
+2. Create the public `inventory` storage bucket.
+3. Create `inventory_items`.
+4. Run all SQL helper scripts in `backend/sql/`.
+5. Set production environment variables.
+6. Deploy the backend and frontend.
+7. Test auth, departments, equipment CRUD, uploads, activity, media, and reports.
 
-### 9.2 Release Notes
+## 11. Known Limitations
 
-Current version: `1.0.0`
-
-Included features:
-
-- Authentication
-- Dashboard summary
-- Department inventory management
-- Equipment media upload
-- Search
-- Recent activity
-- Printable report
-
-### 9.3 Known Issues and Limitations
-
-- The frontend API URL is hardcoded to `http://localhost:5000`.
-- No automated test suite is currently configured.
-- The project depends on Supabase availability.
+- Fine-grained roles such as administrator, staff, and viewer are not implemented.
+- The app depends on Supabase availability.
 - The service role key must be protected carefully.
-- User roles such as admin, staff, and viewer are not separately implemented.
+- Automated tests are not yet implemented.
+- Fallback JSON storage is for compatibility and demonstrations, not a replacement for database migrations.
 
-## 10. Support and Maintenance
+## 12. Maintenance
 
-### 10.1 Troubleshooting Guide
+### 12.1 Common Issues
 
-| Problem | Possible Cause | Solution |
+| Issue | Cause | Resolution |
 | --- | --- | --- |
-| Backend does not start | Missing `.env` values | Add Supabase URL and key |
-| Login fails | Invalid credentials or unconfirmed email | Check login details and Supabase Auth settings |
-| Dashboard does not load | Missing or expired token | Log in again |
-| Upload fails | Missing storage bucket | Create `inventory` bucket in Supabase |
-| Date field error | Missing database column | Run `add-acquisition-date.sql` |
-| Missing condition error | Old database constraint | Run `allow-missing-condition.sql` |
+| Backend fails to start | Missing Supabase environment variables | Add `SUPABASE_URL` and a Supabase key |
+| Login fails | Invalid credentials or unconfirmed email | Check credentials and Supabase Auth settings |
+| Upload fails | Missing storage bucket | Create public bucket `inventory` |
+| Department creation stores fallback data | Missing `departments` table or old constraint | Run `backend/sql/add-departments.sql` |
+| Missing condition fails | Old condition constraint | Run `backend/sql/allow-missing-condition.sql` |
+| Acquisition date fails | Missing column or schema cache | Run `backend/sql/add-acquisition-date.sql` and restart backend |
+| Activity is incomplete | Missing activity table | Run `backend/sql/add-inventory-activity.sql` |
 
-### 10.2 Frequently Asked Questions (FAQs)
-
-**Can the system work without internet?**  
-No. The system requires Supabase for authentication, database access, and media storage.
-
-**Can one user manage all departments?**  
-Yes. Any authenticated user can access the department pages and manage records.
-
-**Where are uploaded images and videos stored?**  
-They are stored in the Supabase `inventory` storage bucket.
-
-**Can reports be printed?**  
-Yes. The dashboard includes a report generation and print option.
-
-### 10.3 Contact Information
-
-For support, contact the project developer or the department responsible for maintaining the Wellspring University Inventory System.
-
-## 11. Change Log
-
-### 11.1 Version History
+### 12.2 Change Log
 
 | Version | Date | Description |
 | --- | --- | --- |
-| 1.0.0 | 2026-05-18 | Initial documented version of the inventory system |
-
-### 11.2 Change Summary
-
-- Added system documentation.
-- Documented frontend and backend structure.
-- Documented API endpoints.
-- Documented database schema.
-- Documented installation, usage, testing, deployment, and maintenance details.
+| 1.0.0 | 2026-05-18 | Initial documented version |
+| 1.1.0 | 2026-06-03 | Updated documentation for dynamic departments, media gallery, activity snapshots, backend static serving, health check, Vercel routing, and migration workflow |
 
 ## Glossary
 
 | Term | Meaning |
 | --- | --- |
 | API | Application Programming Interface used by the frontend to communicate with the backend |
-| Backend | Server-side part of the system |
-| Frontend | User-facing part of the system |
-| Supabase | Cloud service used for authentication, database, and storage |
-| Bearer token | Access token sent in the authorization header |
-| Inventory item | A recorded equipment entry in the system |
-| Department | Academic or administrative unit that owns inventory items |
-| Storage bucket | Supabase container where uploaded files are saved |
+| Backend | Server-side application code |
+| Frontend | Browser-facing application files |
+| Supabase | Platform used for authentication, database, and storage |
+| Bearer token | Access token sent in the Authorization header |
+| Inventory item | A recorded equipment entry |
+| Department | Unit that owns equipment records |
+| Slug | URL-friendly identifier for a department |
+| Storage bucket | Supabase container for uploaded files |

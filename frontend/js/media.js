@@ -1,4 +1,4 @@
-const MEDIA_API = "/api/inventory";
+const MEDIA_API = `${API_ORIGIN}/api/inventory`;
 
 const mediaConditionLabels = {
   good: "Good",
