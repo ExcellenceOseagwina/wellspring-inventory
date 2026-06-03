@@ -1023,6 +1023,7 @@ textarea {
 }
 
 @media (max-width: 640px) {
+
   .topbar,
   .section-head {
     align-items: flex-start;
