@@ -1012,7 +1012,7 @@ textarea {
 .site-footer {
   border-top: 1px solid var(--line);
   color: white;
-  font-size: 1rem;
+  font-size: 4rem;
   padding: 18px;
   text-align: center;
   font-weight: bold;
