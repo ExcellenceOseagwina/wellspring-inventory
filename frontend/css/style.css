@@ -623,7 +623,7 @@ textarea {
 }
 
 .activity-meta {
-  color: var(--muted);
+  color: white;
   font-size: 0.92rem;
 }
 
