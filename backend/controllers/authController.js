@@ -48,12 +48,13 @@ const resetPassword = async (req, res) => {
     return res.status(400).json({ error: "Reset token and new password are required" });
   }
 
-  const { data: userData, error: userError } = await supabase.auth.getUser(access_token);
+  const authedSupabase = supabase.withAuthHeader(`Bearer ${access_token}`);
+  const { data: userData, error: userError } = await authedSupabase.auth.getUser();
   if (userError || !userData.user) {
     return res.status(400).json({ error: "Invalid or expired password reset link" });
   }
 
-  const { error } = await supabase.admin.auth.admin.updateUserById(userData.user.id, {
+  const { error } = await authedSupabase.auth.updateUser({
     password
   });
   if (error) return authError(res, error);

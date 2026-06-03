@@ -12,9 +12,6 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
-const hasServiceRoleKey = Boolean(serviceRoleKey && serviceRoleKey.trim() && !serviceRoleKey.startsWith("your-"));
-const serviceSupabase = hasServiceRoleKey ? createClient(supabaseUrl, serviceRoleKey) : supabase;
-
 const keyRole = (key) => {
   try {
     const payload = JSON.parse(Buffer.from(key.split(".")[1], "base64url").toString("utf8"));
@@ -23,21 +20,29 @@ const keyRole = (key) => {
     return "";
   }
 };
+const hasServiceRoleKey = Boolean(serviceRoleKey && serviceRoleKey.trim() && !serviceRoleKey.startsWith("your-"));
+const serviceKeyRole = hasServiceRoleKey ? keyRole(serviceRoleKey) : "";
+const canUseServiceClient = serviceKeyRole === "service_role";
+const serviceSupabase = canUseServiceClient ? createClient(supabaseUrl, serviceRoleKey) : supabase;
 
 supabase.forRequest = (req) => {
-  if (hasServiceRoleKey || keyRole(supabaseKey) === "service_role") return serviceSupabase;
+  if (keyRole(supabaseKey) === "service_role") return serviceSupabase;
 
   const authHeader = req.headers.authorization;
   if (!authHeader) return supabase;
 
-  return createClient(supabaseUrl, supabaseKey, {
+  return supabase.withAuthHeader(authHeader);
+};
+
+supabase.withAuthHeader = (authHeader) => (
+  createClient(supabaseUrl, supabaseKey, {
     global: {
       headers: {
         Authorization: authHeader
       }
     }
-  });
-};
+  })
+);
 
 supabase.admin = serviceSupabase;
 
