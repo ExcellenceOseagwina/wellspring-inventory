@@ -72,6 +72,14 @@ The dashboard is the main working area after login. It displays:
 
 Dashboard totals are based on equipment quantity, not only the number of records. The department cards show each department and its item quantity total.
 
+### Search Departments
+
+1. Open the dashboard.
+2. Use the Search departments field above the department cards.
+3. Enter all or part of a department name or department slug.
+4. Review the filtered department cards and match count.
+5. Select Clear to remove the search filter.
+
 ## Department Management
 
 ### Add a Department

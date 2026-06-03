@@ -120,7 +120,7 @@ Open `http://localhost:5000`. The backend serves `frontend/home.html` at `/`.
 
 - `api-base.js`: Chooses the API origin. File-based or non-5000 local pages call `http://localhost:5000`; same-origin deployments call `""`.
 - `auth.js`: Signup, login, password reset, logout, password visibility toggles, session handling.
-- `dashboard.js`: Dashboard totals, department creation/deletion, report generation, print handling, cross-tab refresh.
+- `dashboard.js`: Dashboard totals, department search/filtering, department creation/deletion, report generation, print handling, cross-tab refresh.
 - `department.js`: Department item loading, add/edit/delete, uploads, search, media viewer.
 - `activity.js`: Recent activity rendering.
 - `media.js`: All-media gallery rendering.
@@ -337,6 +337,7 @@ Test the following workflows:
 - Forgot password and reset password.
 - Unauthenticated users are redirected or rejected.
 - Dashboard totals load.
+- Dashboard department search filters department cards and clears correctly.
 - Department creation works.
 - Duplicate departments are rejected.
 - Empty departments can be deleted.
@@ -402,7 +403,7 @@ No automated test suite is currently configured. The backend package includes th
 | Version | Date | Description |
 | --- | --- | --- |
 | 1.0.0 | 2026-05-18 | Initial documented version |
-| 1.1.0 | 2026-06-03 | Updated documentation for dynamic departments, media gallery, activity snapshots, backend static serving, health check, Vercel routing, and migration workflow |
+| 1.1.0 | 2026-06-03 | Updated documentation for dynamic departments, dashboard department search, media gallery, activity snapshots, backend static serving, health check, Vercel routing, and migration workflow |
 
 ## Glossary
 

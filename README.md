@@ -70,6 +70,7 @@ wellspring-inventory/
 - User signup, login, logout, forgot password, and reset password.
 - Protected dashboard for authenticated users.
 - Dynamic department creation and deletion.
+- Search/filter department cards on the dashboard by department name or slug.
 - Department inventory pages generated from department URL parameters.
 - Equipment records with name, quantity, condition, acquisition date, comments, image, and video.
 - Equipment edit and delete actions.
