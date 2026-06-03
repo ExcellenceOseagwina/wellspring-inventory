@@ -828,14 +828,15 @@ const uploadFile = async (req, res) => {
     const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "-");
     const filePath = `${folder}/${Date.now()}-${safeName}`;
 
-    const { error } = await supabase.storage.from("inventory").upload(filePath, req.file.buffer, {
+    const db = supabase.forRequest(req);
+    const { error } = await db.storage.from("inventory").upload(filePath, req.file.buffer, {
       contentType: req.file.mimetype,
       upsert: false
     });
 
     if (error) throw error;
 
-    const { data } = supabase.storage.from("inventory").getPublicUrl(filePath);
+    const { data } = db.storage.from("inventory").getPublicUrl(filePath);
     res.status(201).json({ url: data.publicUrl });
   } catch (error) {
     res.status(500).json({ error: error.message });

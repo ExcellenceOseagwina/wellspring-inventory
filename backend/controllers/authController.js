@@ -53,7 +53,7 @@ const resetPassword = async (req, res) => {
     return res.status(400).json({ error: "Invalid or expired password reset link" });
   }
 
-  const { error } = await supabase.auth.admin.updateUserById(userData.user.id, {
+  const { error } = await supabase.admin.auth.admin.updateUserById(userData.user.id, {
     password
   });
   if (error) return authError(res, error);
