@@ -623,7 +623,7 @@ textarea {
 }
 
 .activity-meta {
-  color: white;
+  color: var(--muted);
   font-size: 0.92rem;
 }
 
@@ -1011,7 +1011,7 @@ textarea {
 
 .site-footer {
   border-top: 1px solid var(--line);
-  color: var(--muted);
+  color: white;
   font-size: 0.92rem;
   padding: 18px;
   text-align: center;
