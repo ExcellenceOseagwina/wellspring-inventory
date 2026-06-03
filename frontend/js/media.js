@@ -1,4 +1,4 @@
-const MEDIA_API = "http://localhost:5000/api/inventory";
+const MEDIA_API = "/api/inventory";
 
 const mediaConditionLabels = {
   good: "Good",

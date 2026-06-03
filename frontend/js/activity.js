@@ -1,4 +1,4 @@
-const ACTIVITY_API = "http://localhost:5000/api/inventory";
+const ACTIVITY_API = "/api/inventory";
 
 const activityConditionLabels = {
   good: "Good",

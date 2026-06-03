@@ -1,4 +1,4 @@
-const INVENTORY_API = "http://localhost:5000/api/inventory";
+const INVENTORY_API = "/api/inventory";
 
 let departmentLabels = {};
 

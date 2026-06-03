@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000/api/inventory";
+const API_BASE = "/api/inventory";
 const departmentParams = new URLSearchParams(window.location.search);
 const DEPT = document.body.dataset.department || departmentParams.get("dept");
 const DEPT_NAME = document.body.dataset.departmentName || departmentParams.get("name") || DEPT;
