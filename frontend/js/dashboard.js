@@ -21,6 +21,8 @@ let dashboardRefreshTimeout = null;
 let lastDashboardChangeKey = "";
 let dashboardEventsChannel = null;
 let currentDepartments = [];
+let currentDepartmentTotals = {};
+let currentDepartmentSearchTerm = "";
 
 if ("BroadcastChannel" in window) {
   dashboardEventsChannel = new BroadcastChannel("inventory-events");
@@ -52,22 +54,49 @@ function getDepartmentPageUrl(department) {
   return `departments/department.html?${params.toString()}`;
 }
 
+function getDepartmentSearchText(department, totals = {}) {
+  return [
+    department.name,
+    department.slug,
+    `${totals[department.slug] || 0} items`
+  ].join(" ").toLowerCase();
+}
+
 function renderDepartments(departments = [], totals = {}) {
   const grid = document.getElementById("departmentGrid");
+  const searchStatus = document.getElementById("departmentSearchStatus");
   if (!grid) return;
 
   currentDepartments = departments;
+  currentDepartmentTotals = totals;
   departmentLabels = departments.reduce((labels, department) => {
     labels[department.slug] = department.name;
     return labels;
   }, { ...departmentLabels });
 
   if (!departments.length) {
+    if (searchStatus) searchStatus.textContent = "";
     grid.innerHTML = '<div class="empty-state">No departments have been added yet.</div>';
     return;
   }
 
-  grid.innerHTML = departments.map((department) => `
+  const searchTerm = currentDepartmentSearchTerm.trim().toLowerCase();
+  const visibleDepartments = departments.filter((department) => (
+    !searchTerm || getDepartmentSearchText(department, totals).includes(searchTerm)
+  ));
+
+  if (searchStatus) {
+    searchStatus.textContent = searchTerm
+      ? `Showing ${visibleDepartments.length} of ${departments.length} departments`
+      : "";
+  }
+
+  if (!visibleDepartments.length) {
+    grid.innerHTML = '<div class="empty-state">No departments match your search.</div>';
+    return;
+  }
+
+  grid.innerHTML = visibleDepartments.map((department) => `
     <article class="department-card managed-department-card">
       <a class="department-card-link" href="${escapeHtml(getDepartmentPageUrl(department))}">
         <strong>${escapeHtml(department.name)}</strong>
@@ -76,6 +105,11 @@ function renderDepartments(departments = [], totals = {}) {
       <button class="btn danger department-delete-btn" type="button" data-delete-department="${escapeHtml(department.slug)}">Delete</button>
     </article>
   `).join("");
+}
+
+function applyDepartmentSearch(value = "") {
+  currentDepartmentSearchTerm = value;
+  renderDepartments(currentDepartments, currentDepartmentTotals);
 }
 
 function getStoredDashboardUserName() {
@@ -380,6 +414,17 @@ document.getElementById("printReportBtn")?.addEventListener("click", () => windo
 document.getElementById("addDepartmentBtn")?.addEventListener("click", openDepartmentModal);
 document.getElementById("cancelDepartmentBtn")?.addEventListener("click", closeDepartmentModal);
 document.getElementById("departmentForm")?.addEventListener("submit", createDepartment);
+document.getElementById("departmentSearch")?.addEventListener("input", (event) => {
+  applyDepartmentSearch(event.target.value);
+});
+document.getElementById("clearDepartmentSearchBtn")?.addEventListener("click", () => {
+  const input = document.getElementById("departmentSearch");
+  if (!input) return;
+
+  input.value = "";
+  input.focus();
+  applyDepartmentSearch("");
+});
 document.getElementById("departmentModal")?.addEventListener("click", (event) => {
   if (event.target.id === "departmentModal") closeDepartmentModal();
 });

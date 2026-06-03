@@ -44,6 +44,14 @@
           <button class="btn primary" type="button" id="generateReportBtn">Generate Report</button>
         </div>
       </section>
+      <section class="department-search" aria-label="Search departments">
+        <label for="departmentSearch">Search departments</label>
+        <div class="search-row">
+          <input type="search" id="departmentSearch" placeholder="Search by department name" autocomplete="off">
+          <button class="btn secondary" type="button" id="clearDepartmentSearchBtn">Clear</button>
+        </div>
+        <p id="departmentSearchStatus" class="muted"></p>
+      </section>
       <section class="department-grid" id="departmentGrid" aria-label="Department item totals"></section>
       <section class="report-panel" id="reportPanel" aria-live="polite" hidden>
         <div class="report-toolbar">
