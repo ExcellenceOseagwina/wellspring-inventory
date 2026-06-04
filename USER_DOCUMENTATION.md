@@ -11,14 +11,14 @@ Users need:
 - A desktop, laptop, tablet, or smartphone.
 - A modern browser such as Chrome, Edge, Firefox, or Safari.
 - Internet access for Supabase authentication, database, and storage.
-- A valid email since confirmation request will be sent to that email.
+- A valid email since confirmation requests will be sent to that email.
 - Access to the running system, normally `http://localhost:5000` during local use.
 
 For local demonstration, the computer also needs Node.js, npm, a configured Supabase project, and a public Supabase Storage bucket named `inventory`.
 
 ## Accessing the System
 
-For local use:
+For local usage:
 
 1. Start the backend server.
 2. Open `http://localhost:5000` in a browser.

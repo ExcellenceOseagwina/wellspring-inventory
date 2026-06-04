@@ -101,7 +101,7 @@ npm start
 
 Open `http://localhost:5000`. The backend serves `frontend/home.html` at `/`.
 
-## 4. Frontend Design
+## 4. Frontend UI
 
 ### 4.1 Pages
 
@@ -307,7 +307,7 @@ Typical object paths:
 
 The `app-data` paths are fallback storage paths used in hosted environments when the department migration is missing. Running all SQL migrations is the preferred setup.
 
-## 7. Business Rules
+## 7. Rules
 
 - Users must be authenticated to access inventory endpoints.
 - Department names are normalized and converted to slugs.
@@ -316,8 +316,7 @@ The `app-data` paths are fallback storage paths used in hosted environments when
 - Equipment quantity must be an integer greater than or equal to `1`.
 - Equipment condition must match one of the supported condition values.
 - Acquisition date is optional, but if supplied it must be a valid date.
-- Uploaded files are stored in the public `inventory` bucket.
-- Dashboard and reports count equipment quantities, not just row counts.
+
 
 ## 8. Fallback Behavior
 
