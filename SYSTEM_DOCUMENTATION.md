@@ -125,7 +125,7 @@ Open `http://localhost:5000`. The backend serves `frontend/home.html` at `/`.
 - `activity.js`: Recent activity rendering.
 - `media.js`: All-media gallery rendering.
 
-### 4.3 Authentication Flow
+### 4.3 Authentication
 
 1. User signs up or logs in through the frontend.
 2. Backend calls Supabase Auth.

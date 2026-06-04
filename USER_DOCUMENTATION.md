@@ -11,7 +11,7 @@ Users need:
 - A desktop, laptop, tablet, or smartphone.
 - A modern browser such as Chrome, Edge, Firefox, or Safari.
 - Internet access for Supabase authentication, database, and storage.
-- A valid user account.
+- A valid email since confirmation request will be sent to that email.
 - Access to the running system, normally `http://localhost:5000` during local use.
 
 For local demonstration, the computer also needs Node.js, npm, a configured Supabase project, and a public Supabase Storage bucket named `inventory`.
@@ -60,7 +60,7 @@ If the frontend is opened directly from the `frontend/` folder, the pages still 
 
 ## Dashboard
 
-The dashboard is the main working area after login. It displays:
+The dashboard is the main working area after login. It displays the:
 
 - Total Equipment
 - Departments
@@ -83,7 +83,6 @@ Dashboard totals are based on equipment quantity, not only the number of records
 ## Department Management
 
 ### Add a Department
-
 1. Open the dashboard.
 2. Select Add Department.
 3. Enter the department name.
@@ -92,7 +91,6 @@ Dashboard totals are based on equipment quantity, not only the number of records
 The system creates a URL-friendly department slug automatically. For example, `Computer Science` becomes `computer-science`.
 
 ### Open a Department
-
 1. Open the dashboard.
 2. Select the department card.
 3. The department inventory page opens with that department's records.
@@ -227,14 +225,14 @@ Separate administrator, staff, and viewer roles are not currently enforced. User
 
 ## Security and Safety Tips
 
-- Use a strong password.
+- Use a strong password and a valid email.
 - Do not share login details.
 - Sign out after using a shared computer.
 - Confirm equipment details before saving.
 - Delete records only when authorized.
 - Upload only relevant equipment images or videos.
 - Report suspicious account activity to the administrator.
-- Never place Supabase service role keys in frontend files.
+
 
 ## Support Information
 
