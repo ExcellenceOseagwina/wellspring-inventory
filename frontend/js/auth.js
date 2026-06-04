@@ -264,19 +264,29 @@ document.getElementById("forgotForm")?.addEventListener("submit", async (e) => {
   }
 });
 
+function getResetPasswordTokens() {
+  const hashParams = new URLSearchParams(window.location.hash.slice(1));
+  const searchParams = new URLSearchParams(window.location.search);
+
+  return {
+    access_token: hashParams.get("access_token") || searchParams.get("access_token"),
+    refresh_token: hashParams.get("refresh_token") || searchParams.get("refresh_token"),
+    error: hashParams.get("error_description") || searchParams.get("error_description")
+  };
+}
+
 document.getElementById("resetPasswordForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const password = document.getElementById("password").value;
   const confirmPassword = document.getElementById("confirmPassword").value;
-  const params = new URLSearchParams(window.location.hash.slice(1));
-  const access_token = params.get("access_token");
+  const { access_token, refresh_token, error } = getResetPasswordTokens();
 
   setFieldError("passwordError");
   setFieldError("confirmPasswordError");
 
-  if (!access_token) {
-    showAuthMessage("Invalid or expired password reset link");
+  if (error || !access_token || !refresh_token) {
+    showAuthMessage(error || "Invalid or expired password reset link");
     return;
   }
 
@@ -294,7 +304,7 @@ document.getElementById("resetPasswordForm")?.addEventListener("submit", async (
     const res = await fetch(`${AUTH_API}/reset-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ access_token, password })
+      body: JSON.stringify({ access_token, refresh_token, password })
     });
 
     const data = await res.json();
