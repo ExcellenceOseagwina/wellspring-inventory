@@ -1,6 +1,6 @@
 # Wellspring University Inventory System
 
-A web-based inventory management system for Wellspring University. The app lets authenticated users create departments, record equipment, upload item images or videos, review recent activity, and generate printable inventory reports.
+This is a web-based inventory management system for Wellspring University. This website lets authenticated users create departments, record equipment, upload item images or videos, review recent activity, and generate printable inventory reports.
 
 ## Tech Stack
 
